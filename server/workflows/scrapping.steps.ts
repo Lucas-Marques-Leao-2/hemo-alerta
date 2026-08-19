@@ -37,9 +37,55 @@ export type BloodBankData = {
 export async function getBloodBankDataHtml() {
   "use step"
 
-  return await requestHtml(
-    "https://cidadao.saude.al.gov.br/transparencia/doacoes/",
-  )
+  const headers = {
+    accept: "text/html,application/xhtml+xml",
+    "user-agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  }
+
+  return await new Promise<string>((resolve, reject) => {
+    const request = (url: string, redirectCount: number) => {
+      if (redirectCount > 5) {
+        reject(new Error("Too many redirects while fetching blood bank page"))
+        return
+      }
+
+      https
+        .get(url, { rejectUnauthorized: false, headers }, (response) => {
+          const location = response.headers.location
+          if (
+            response.statusCode &&
+            response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            location
+          ) {
+            response.resume()
+            request(new URL(location, url).href, redirectCount + 1)
+            return
+          }
+
+          if (!response.statusCode || response.statusCode >= 400) {
+            reject(
+              new Error(
+                `Failed to fetch blood bank page: ${response.statusCode ?? "unknown"}`,
+              ),
+            )
+            response.resume()
+            return
+          }
+
+          const chunks: Buffer[] = []
+          response.on("data", (chunk) => chunks.push(chunk))
+          response.on("end", () =>
+            resolve(Buffer.concat(chunks).toString("utf8")),
+          )
+          response.on("error", reject)
+        })
+        .on("error", reject)
+    }
+
+    request("https://cidadao.saude.al.gov.br/transparencia/doacoes/", 0)
+  })
 }
 
 export async function parseBloodBankData(html: string) {
@@ -109,57 +155,6 @@ export async function saveBloodBankData(data: BloodBankData) {
     include: {
       stocks: true,
     },
-  })
-}
-
-function requestHtml(url: string, redirectCount = 0): Promise<string> {
-  if (redirectCount > 5) {
-    throw new Error("Too many redirects while fetching blood bank page")
-  }
-
-  return new Promise((resolve, reject) => {
-    https
-      .get(
-        url,
-        {
-          rejectUnauthorized: false,
-          headers: {
-            accept: "text/html,application/xhtml+xml",
-            "user-agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          },
-        },
-        (response) => {
-          const status = response.statusCode ?? 0
-          const location = response.headers.location
-
-          if (status >= 300 && status < 400 && location) {
-            response.resume()
-            const nextUrl = new URL(location, url).href
-            requestHtml(nextUrl, redirectCount + 1).then(resolve, reject)
-            return
-          }
-
-          if (status >= 400) {
-            response.resume()
-            reject(new Error(`Failed to fetch blood bank page: ${status}`))
-            return
-          }
-
-          const chunks: Buffer[] = []
-          response.on("data", (chunk) => chunks.push(chunk))
-          response.on("end", () =>
-            resolve(Buffer.concat(chunks).toString("utf8")),
-          )
-        },
-      )
-      .on("error", (error) => {
-        reject(
-          new Error(`Failed to fetch blood bank page: ${error.message}`, {
-            cause: error,
-          }),
-        )
-      })
   })
 }
 
