@@ -1,6 +1,5 @@
 import { BloodType as PrismaBloodType, StockStatus } from "@/prisma/generated/client"
 import * as cheerio from "cheerio"
-import puppeteer from "puppeteer"
 
 import { prisma } from "@/lib/db"
 
@@ -45,18 +44,19 @@ async function getBloodBankDataHtml() {
   "use step"
 
   const url = "https://cidadao.saude.al.gov.br/transparencia/doacoes/"
-  const browser = await puppeteer.launch({ headless: true })
+  const response = await fetch(url, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (compatible; HemoAlerta/1.0; +https://cidadao.saude.al.gov.br/transparencia/doacoes/)",
+    },
+    cache: "no-store",
+  })
 
-  try {
-    const page = await browser.newPage()
-    await page.goto(url, { waitUntil: "domcontentloaded" })
-
-    return await page.evaluate(() => {
-      return document.querySelector("main")?.outerHTML ?? document.body.outerHTML
-    })
-  } finally {
-    await browser.close()
+  if (!response.ok) {
+    throw new Error(`Failed to fetch blood bank page: ${response.status}`)
   }
+
+  return await response.text()
 }
 
 async function parseBloodBankData(html: string) {
