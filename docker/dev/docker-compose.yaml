@@ -1,0 +1,34 @@
+services:
+    pg:
+        image: postgres:16
+        restart: unless-stopped
+        ports:
+            - "7085:5432"
+        environment:
+            - POSTGRES_USER=docker
+            - POSTGRES_PASSWORD=docker
+            - POSTGRES_DB=hemoalerta
+        volumes:
+            - hemoalerta_pg:/var/lib/postgresql/data
+        networks:
+            - pgnet
+
+    pg-admin:
+        image: dpage/pgadmin4
+        restart: unless-stopped
+        ports:
+            - "7086:80"
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=docker@dev.com
+            - PGADMIN_DEFAULT_PASSWORD=docker
+        depends_on:
+            - pg
+        networks:
+            - pgnet
+
+networks:
+    pgnet:
+        driver: bridge
+
+volumes:
+    hemoalerta_pg:

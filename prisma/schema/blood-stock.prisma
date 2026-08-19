@@ -1,0 +1,51 @@
+enum BloodType {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum StockStatus {
+  CRITICAL
+  MINIMUM
+  ADEQUATE
+  SAFE
+}
+
+model BloodStockSnapshot {
+  id              String       @id @default(cuid())
+  sourceUpdatedAt DateTime?
+  scrapedAt       DateTime     @default(now())
+  stocks          BloodStock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scrapedAt])
+  @@map("blood_stock_snapshots")
+}
+
+model BloodStock {
+  id         String             @id @default(cuid())
+  snapshotId String
+  snapshot   BloodStockSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  bloodType        BloodType
+  minimumQuantity  Int
+  adequateQuantity Int
+  safeQuantity     Int
+  actualQuantity   Int
+  fillPercentage   Int
+  status           StockStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([snapshotId, bloodType])
+  @@index([bloodType, status])
+  @@map("blood_stocks")
+}

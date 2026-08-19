@@ -1,5 +1,8 @@
+import { BloodType as PrismaBloodType, StockStatus } from "@/prisma/generated/client"
 import * as cheerio from "cheerio"
 import puppeteer from "puppeteer"
+
+import { prisma } from "@/lib/db"
 
 const BLOOD_TYPE_BY_CLASS = {
   s_ap: "A+",
@@ -14,8 +17,6 @@ const BLOOD_TYPE_BY_CLASS = {
 
 type BloodTypeClass = keyof typeof BLOOD_TYPE_BY_CLASS
 type BloodType = (typeof BLOOD_TYPE_BY_CLASS)[BloodTypeClass]
-
-type StockStatus = "critico" | "minimo" | "adequado" | "seguro"
 
 type BloodTypeStock = {
   bloodType: BloodType
@@ -37,7 +38,7 @@ export async function scrapBloodBankData() {
 
   const html = await getBloodBankDataHtml()
   const data = await parseBloodBankData(html)
-  return data
+  return await saveBloodBankData(data)
 }
 
 async function getBloodBankDataHtml() {
@@ -102,6 +103,47 @@ async function parseBloodBankData(html: string) {
   }
 }
 
+async function saveBloodBankData(data: BloodBankData) {
+  "use step"
+
+  return prisma.bloodStockSnapshot.create({
+    data: {
+      sourceUpdatedAt: data.lastUpdatedAt
+        ? new Date(`${data.lastUpdatedAt}T00:00:00.000Z`)
+        : null,
+      stocks: {
+        create: Object.values(data.stocks).map((stock) => ({
+          bloodType: toPrismaBloodType(stock.bloodType),
+          minimumQuantity: stock.minimumQuantity,
+          adequateQuantity: stock.adequateQuantity,
+          safeQuantity: stock.safeQuantity,
+          actualQuantity: stock.actualQuantity,
+          fillPercentage: stock.fillPercentage,
+          status: stock.status,
+        })),
+      },
+    },
+    include: {
+      stocks: true,
+    },
+  })
+}
+
+const BLOOD_TYPE_TO_PRISMA: Record<BloodType, PrismaBloodType> = {
+  "A+": PrismaBloodType.A_POSITIVE,
+  "A-": PrismaBloodType.A_NEGATIVE,
+  "B+": PrismaBloodType.B_POSITIVE,
+  "B-": PrismaBloodType.B_NEGATIVE,
+  "AB+": PrismaBloodType.AB_POSITIVE,
+  "AB-": PrismaBloodType.AB_NEGATIVE,
+  "O+": PrismaBloodType.O_POSITIVE,
+  "O-": PrismaBloodType.O_NEGATIVE,
+}
+
+function toPrismaBloodType(bloodType: BloodType) {
+  return BLOOD_TYPE_TO_PRISMA[bloodType]
+}
+
 function parseLastUpdatedAt($: cheerio.CheerioAPI) {
   const updatedText = $("p")
     .filter((_, element) => /Atualizado em/i.test($(element).text()))
@@ -126,8 +168,8 @@ function getStockStatus(
   adequateQuantity: number,
   safeQuantity: number,
 ): StockStatus {
-  if (actualQuantity < minimumQuantity) return "critico"
-  if (actualQuantity < adequateQuantity) return "minimo"
-  if (actualQuantity < safeQuantity) return "adequado"
-  return "seguro"
+  if (actualQuantity < minimumQuantity) return StockStatus.CRITICAL
+  if (actualQuantity < adequateQuantity) return StockStatus.MINIMUM
+  if (actualQuantity < safeQuantity) return StockStatus.ADEQUATE
+  return StockStatus.SAFE
 }
