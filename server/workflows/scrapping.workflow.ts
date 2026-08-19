@@ -1,3 +1,5 @@
+import https from "node:https"
+
 import { BloodType as PrismaBloodType, StockStatus } from "@/prisma/generated/client"
 import * as cheerio from "cheerio"
 
@@ -43,20 +45,60 @@ export async function scrapBloodBankData() {
 async function getBloodBankDataHtml() {
   "use step"
 
-  const url = "https://cidadao.saude.al.gov.br/transparencia/doacoes/"
-  const response = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (compatible; HemoAlerta/1.0; +https://cidadao.saude.al.gov.br/transparencia/doacoes/)",
-    },
-    cache: "no-store",
-  })
+  return await requestHtml(
+    "https://cidadao.saude.al.gov.br/transparencia/doacoes/",
+  )
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch blood bank page: ${response.status}`)
+function requestHtml(url: string, redirectCount = 0): Promise<string> {
+  if (redirectCount > 5) {
+    throw new Error("Too many redirects while fetching blood bank page")
   }
 
-  return await response.text()
+  return new Promise((resolve, reject) => {
+    https
+      .get(
+        url,
+        {
+          rejectUnauthorized: false,
+          headers: {
+            accept: "text/html,application/xhtml+xml",
+            "user-agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          },
+        },
+        (response) => {
+          const status = response.statusCode ?? 0
+          const location = response.headers.location
+
+          if (status >= 300 && status < 400 && location) {
+            response.resume()
+            const nextUrl = new URL(location, url).href
+            requestHtml(nextUrl, redirectCount + 1).then(resolve, reject)
+            return
+          }
+
+          if (status >= 400) {
+            response.resume()
+            reject(new Error(`Failed to fetch blood bank page: ${status}`))
+            return
+          }
+
+          const chunks: Buffer[] = []
+          response.on("data", (chunk) => chunks.push(chunk))
+          response.on("end", () =>
+            resolve(Buffer.concat(chunks).toString("utf8")),
+          )
+        },
+      )
+      .on("error", (error) => {
+        reject(
+          new Error(`Failed to fetch blood bank page: ${error.message}`, {
+            cause: error,
+          }),
+        )
+      })
+  })
 }
 
 async function parseBloodBankData(html: string) {
