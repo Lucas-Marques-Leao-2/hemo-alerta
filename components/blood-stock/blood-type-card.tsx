@@ -1,5 +1,6 @@
 import {
   BLOOD_TYPE_LABEL,
+  getSafeStockFillPercentage,
   STOCK_STATUS_LABEL,
   STOCK_STATUS_STYLES,
 } from "@/lib/blood-stock"
@@ -11,7 +12,10 @@ type BloodTypeCardProps = {
 
 export function BloodTypeCard({ stock }: BloodTypeCardProps) {
   const styles = STOCK_STATUS_STYLES[stock.status]
-  const fillPercentage = Math.min(100, Math.max(0, stock.fillPercentage))
+  const fillPercentage = getSafeStockFillPercentage(
+    stock.actualQuantity,
+    stock.safeQuantity,
+  )
 
   return (
     <article
@@ -51,7 +55,7 @@ export function BloodTypeCard({ stock }: BloodTypeCardProps) {
             {stock.actualQuantity}
           </p>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            bolsas atuais · {fillPercentage}% do estoque seguro
+            bolsas atuais
           </p>
         </div>
       </div>

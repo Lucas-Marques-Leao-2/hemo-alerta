@@ -1,15 +1,17 @@
+import { BloodTypeCard } from "./blood-type-card";
+import { BloodStockHistoryChart } from "./blood-stock-history-chart";
 import { STOCK_STATUS_LABEL, STOCK_STATUS_STYLES } from "@/lib/blood-stock";
 import { StockStatus } from "@/prisma/generated/client";
 import type {
   BloodStockDashboardStats,
+  BloodStockHistoryPoint,
   LatestBloodStockSnapshot,
-} from "@/server/actions/blood-stock/get-latest-blood-stock.action";
-
-import { BloodTypeCard } from "./blood-type-card";
+} from "@/lib/blood-stock-types";
 
 type BloodStockDashboardProps = {
   snapshot: LatestBloodStockSnapshot | null;
   stats: BloodStockDashboardStats | null;
+  history: BloodStockHistoryPoint[];
 };
 
 const STATUS_ORDER: StockStatus[] = [
@@ -38,6 +40,7 @@ function formatNumber(value: number, fractionDigits = 0) {
 export function BloodStockDashboard({
   snapshot,
   stats,
+  history,
 }: BloodStockDashboardProps) {
   const counts = Object.fromEntries(
     STATUS_ORDER.map((status) => [
@@ -169,6 +172,8 @@ export function BloodStockDashboard({
           );
         })}
       </section>
+
+      {history.length > 0 && <BloodStockHistoryChart history={history} />}
 
       {snapshot && (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

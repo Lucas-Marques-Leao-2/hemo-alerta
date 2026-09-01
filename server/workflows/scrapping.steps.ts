@@ -3,6 +3,7 @@ import https from "node:https"
 import { BloodType as PrismaBloodType, StockStatus } from "@/prisma/generated/client"
 import * as cheerio from "cheerio"
 
+import { getSafeStockFillPercentage } from "@/lib/blood-stock"
 import { prisma } from "@/lib/db"
 
 const BLOOD_TYPE_BY_CLASS = {
@@ -104,7 +105,6 @@ export async function parseBloodBankData(html: string) {
     if (!bloodTypeClass) return
 
     const bloodType = BLOOD_TYPE_BY_CLASS[bloodTypeClass]
-    const fillMatch = classNames.find((className) => /^p\d+$/.test(className))
     const minimumQuantity = toQuantity($(element).attr("data-minimo"))
     const adequateQuantity = toQuantity($(element).attr("data-adequado"))
     const safeQuantity = toQuantity($(element).attr("data-seguro"))
@@ -116,7 +116,7 @@ export async function parseBloodBankData(html: string) {
       adequateQuantity,
       safeQuantity,
       actualQuantity,
-      fillPercentage: fillMatch ? Number(fillMatch.slice(1)) : 0,
+      fillPercentage: getSafeStockFillPercentage(actualQuantity, safeQuantity),
       status: getStockStatus(
         actualQuantity,
         minimumQuantity,

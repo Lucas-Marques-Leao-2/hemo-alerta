@@ -9,15 +9,22 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mantine/charts": "^9.6.0",
+    "@mantine/core": "^9.6.0",
+    "@mantine/hooks": "^9.6.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "cheerio": "^1.2.0",
+    "dayjs": "^1.11.23",
     "dotenv": "^17.4.2",
     "next": "16.3.0",
+    "next-safe-action": "^8.6.1",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "workflow": "^4.8.2"
+    "recharts": "^3.10.1",
+    "workflow": "^4.8.2",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -27,6 +34,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5"

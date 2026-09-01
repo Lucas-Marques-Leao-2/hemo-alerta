@@ -1,28 +1,32 @@
 import { BloodType, StockStatus } from "@/prisma/generated/client"
 
+import {
+  BLOOD_TYPE_CHART_COLORS,
+  BLOOD_TYPE_LABEL,
+  BLOOD_TYPE_KEYS,
+} from "@/lib/blood-stock-constants"
+
+export {
+  BLOOD_TYPE_CHART_COLORS,
+  BLOOD_TYPE_KEYS,
+  BLOOD_TYPE_LABEL,
+} from "@/lib/blood-stock-constants"
+export type { BloodStockHistoryPoint, BloodTypeKey } from "@/lib/blood-stock-constants"
+
 export const DAILY_MINIMUM_BAGS = 350
 
-export const BLOOD_TYPE_ORDER: BloodType[] = [
-  BloodType.A_POSITIVE,
-  BloodType.A_NEGATIVE,
-  BloodType.B_POSITIVE,
-  BloodType.B_NEGATIVE,
-  BloodType.AB_POSITIVE,
-  BloodType.AB_NEGATIVE,
-  BloodType.O_POSITIVE,
-  BloodType.O_NEGATIVE,
-]
+export function getSafeStockFillPercentage(
+  actualQuantity: number,
+  safeQuantity: number,
+) {
+  if (safeQuantity <= 0) return 0
 
-export const BLOOD_TYPE_LABEL: Record<BloodType, string> = {
-  A_POSITIVE: "A+",
-  A_NEGATIVE: "A-",
-  B_POSITIVE: "B+",
-  B_NEGATIVE: "B-",
-  AB_POSITIVE: "AB+",
-  AB_NEGATIVE: "AB-",
-  O_POSITIVE: "O+",
-  O_NEGATIVE: "O-",
+  return Math.min(100, Math.round((actualQuantity / safeQuantity) * 100))
 }
+
+export const BLOOD_TYPE_ORDER: BloodType[] = BLOOD_TYPE_KEYS.map(
+  (bloodType) => bloodType as BloodType,
+)
 
 export const STOCK_STATUS_LABEL: Record<StockStatus, string> = {
   CRITICAL: "Crítico",
