@@ -21,11 +21,6 @@ export type {
 
 const getBloodStockDashboardDataSchema = z.object({})
 
-function snapshotDay(sourceUpdatedAt: Date | null, scrapedAt: Date) {
-  const date = sourceUpdatedAt ?? scrapedAt
-  return date.toISOString().slice(0, 10)
-}
-
 function dayToDate(day: string) {
   return new Date(`${day}T00:00:00.000Z`)
 }
@@ -57,7 +52,7 @@ function buildHistory(
   const latestByDay = new Map<string, BloodStockHistoryPoint>()
 
   for (const snapshot of snapshots) {
-    const day = snapshotDay(snapshot.sourceUpdatedAt, snapshot.scrapedAt)
+    const day = snapshot.scrapedAt.toISOString().slice(0, 10)
 
     if (latestByDay.has(day)) continue
 

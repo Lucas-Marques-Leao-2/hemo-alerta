@@ -2,8 +2,6 @@
 
 import { CompositeChart } from "@mantine/charts"
 import { SegmentedControl, Select } from "@mantine/core"
-import dayjs from "dayjs"
-import "dayjs/locale/pt-br"
 import { useMemo, useState } from "react"
 
 import {
@@ -12,10 +10,17 @@ import {
   BLOOD_TYPE_LABEL,
   type BloodStockHistoryPoint,
 } from "@/lib/blood-stock-constants"
+import {
+  densifyHistory,
+  filterHistory,
+  getElasticTickInterval,
+  getElasticXPadding,
+  getElasticYAxisDomain,
+  resolveDefaultPeriod,
+  toChartRows,
+  type HistoryPeriod,
+} from "@/lib/blood-stock-chart"
 
-dayjs.locale("pt-br")
-
-type HistoryPeriod = "7days" | "30days" | "90days" | "all"
 type HistoryView = "total" | "by-type"
 
 type BloodStockHistoryChartProps = {
@@ -29,25 +34,15 @@ const PERIOD_OPTIONS = [
   { label: "Todo o período", value: "all" },
 ] as const
 
-function filterHistory(history: BloodStockHistoryPoint[], period: HistoryPeriod) {
-  if (period === "all") return history
-
-  const days = period === "7days" ? 7 : period === "30days" ? 30 : 90
-  const cutoff = dayjs().subtract(days, "day").format("YYYY-MM-DD")
-
-  return history.filter((point) => point.sortKey >= cutoff)
-}
-
 export function BloodStockHistoryChart({ history }: BloodStockHistoryChartProps) {
-  const [period, setPeriod] = useState<HistoryPeriod>("30days")
+  const [period, setPeriod] = useState<HistoryPeriod>(() =>
+    resolveDefaultPeriod(history),
+  )
   const [view, setView] = useState<HistoryView>("total")
 
   const chartData = useMemo(() => {
-    return filterHistory(history, period).map((point) => ({
-      date: dayjs(point.sortKey).format("DD MMM"),
-      total: point.totalBags,
-      ...point.stocks,
-    }))
+    const filtered = filterHistory(history, period)
+    return toChartRows(densifyHistory(filtered))
   }, [history, period])
 
   const series = useMemo(() => {
@@ -70,12 +65,25 @@ export function BloodStockHistoryChart({ history }: BloodStockHistoryChartProps)
     }))
   }, [view])
 
+  const xPadding = useMemo(
+    () => getElasticXPadding(chartData.length),
+    [chartData.length],
+  )
+  const tickInterval = useMemo(
+    () => getElasticTickInterval(chartData.length),
+    [chartData.length],
+  )
+  const yAxisDomain = useMemo(
+    () => getElasticYAxisDomain(chartData, view),
+    [chartData, view],
+  )
+
   if (history.length < 2) {
     return (
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="text-lg font-semibold">Histórico do estoque</h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          São necessários ao menos 2 dias de snapshots para exibir o gráfico.
+          São necessários ao menos 2 coletas para exibir o gráfico.
         </p>
       </section>
     )
@@ -87,7 +95,8 @@ export function BloodStockHistoryChart({ history }: BloodStockHistoryChartProps)
         <div>
           <h2 className="text-lg font-semibold">Histórico do estoque</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Evolução diária com base nos snapshots coletados.
+            Evolução por data de coleta. Lacunas são preenchidas com o último
+            valor conhecido.
           </p>
         </div>
 
@@ -123,7 +132,7 @@ export function BloodStockHistoryChart({ history }: BloodStockHistoryChartProps)
 
       {chartData.length === 0 ? (
         <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Nenhum snapshot no período selecionado.
+          Nenhuma coleta no período selecionado.
         </p>
       ) : (
         <div className="mt-6">
@@ -139,11 +148,18 @@ export function BloodStockHistoryChart({ history }: BloodStockHistoryChartProps)
               new Intl.NumberFormat("pt-BR").format(value)
             }
             withLegend={view === "by-type"}
-            withPointLabels={view === "total"}
+            withPointLabels={view === "total" && chartData.length <= 14}
             xAxisLabel="Data"
-            xAxisProps={{ tickLine: false }}
+            xAxisProps={{
+              interval: tickInterval,
+              padding: xPadding,
+              tickLine: false,
+            }}
             yAxisLabel="Bolsas"
-            yAxisProps={{ tickLine: false }}
+            yAxisProps={{
+              domain: yAxisDomain,
+              tickLine: false,
+            }}
           />
         </div>
       )}
