@@ -12,12 +12,13 @@ const getAdminOverviewSchema = z.object({})
 export const getAdminOverviewAction = authActionClient
   .inputSchema(getAdminOverviewSchema)
   .action(async () => {
-    const [latest, activeUsers] = await Promise.all([
+    const [latest, activeUsers, donors] = await Promise.all([
       prisma.bloodStockSnapshot.findFirst({
         orderBy: { scrapedAt: "desc" },
         include: { stocks: true },
       }),
       prisma.user.count({ where: { banned: { not: true } } }),
+      prisma.donor.count(),
     ])
 
     const stocks = latest?.stocks ?? []
@@ -35,5 +36,6 @@ export const getAdminOverviewAction = authActionClient
       totalBags: stocks.reduce((sum, stock) => sum + stock.actualQuantity, 0),
       lowStockTypes,
       activeUsers,
+      donors,
     }
   })

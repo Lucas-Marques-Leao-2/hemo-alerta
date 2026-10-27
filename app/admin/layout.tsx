@@ -12,7 +12,10 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await requireSession()
-  const canManageUsers = await hasPermission(session, { user: ["list"] })
+  const [canListDonors, canManageUsers] = await Promise.all([
+    hasPermission(session, { donor: ["list"] }),
+    hasPermission(session, { user: ["list"] }),
+  ])
   const { role } = session.user
 
   return (
@@ -30,6 +33,14 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               <Link href="/admin" className="hover:text-zinc-950 dark:hover:text-zinc-50">
                 Painel
               </Link>
+              {canListDonors && (
+                <Link
+                  href="/admin/doadores"
+                  className="hover:text-zinc-950 dark:hover:text-zinc-50"
+                >
+                  Doadores
+                </Link>
+              )}
               {canManageUsers && (
                 <Link
                   href="/admin/usuarios"

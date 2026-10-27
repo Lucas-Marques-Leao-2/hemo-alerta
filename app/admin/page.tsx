@@ -61,8 +61,8 @@ export default async function AdminDashboardPage() {
         />
         <OverviewCard
           label="Doadores cadastrados"
-          value="—"
-          detail="Cadastro de doadores em breve"
+          value={overview ? String(overview.donors) : "—"}
+          detail="Recebem avisos de necessidade de doação"
         />
       </section>
 
