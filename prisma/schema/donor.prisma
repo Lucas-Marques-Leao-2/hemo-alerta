@@ -1,0 +1,13 @@
+model Donor {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  bloodType      BloodType
+  lastDonationAt DateTime? @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bloodType])
+  @@map("donors")
+}
