@@ -4,6 +4,10 @@ model Donor {
   email          String    @unique
   bloodType      BloodType
   lastDonationAt DateTime? @db.Date
+  // Preferência do doador: quando falso, não entra em nenhuma convocação.
+  acceptsCampaigns Boolean @default(true)
+
+  deliveries CampaignDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

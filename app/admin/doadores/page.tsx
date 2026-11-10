@@ -4,8 +4,9 @@ import { DeleteDonorButton } from "@/components/admin/donors/delete-donor-button
 import { DonorFilters } from "@/components/admin/donors/donor-filters"
 import { ButtonLink } from "@/components/button-link"
 import { hasPermission, requirePermission } from "@/lib/auth-session"
-import { BLOOD_TYPE_KEYS, BLOOD_TYPE_LABEL, type BloodTypeKey } from "@/lib/blood-stock-constants"
-import { formatDonationDate } from "@/lib/donor"
+import { BLOOD_TYPE_LABEL } from "@/lib/blood-stock-constants"
+import { formatDateTime } from "@/lib/campaign"
+import { ABO_GROUPS, formatDonationDate, RH_FACTORS, type AboGroup, type RhFactor } from "@/lib/donor"
 import { listDonorsAction } from "@/server/actions/donors/list-donors.action"
 
 export const dynamic = "force-dynamic"
@@ -14,8 +15,12 @@ function param(value: string | string[] | undefined) {
   return typeof value === "string" && value !== "" ? value : undefined
 }
 
-function isBloodType(value: string | undefined): value is BloodTypeKey {
-  return BLOOD_TYPE_KEYS.includes(value as BloodTypeKey)
+function isAbo(value: string | undefined): value is AboGroup {
+  return ABO_GROUPS.includes(value as AboGroup)
+}
+
+function isRh(value: string | undefined): value is RhFactor {
+  return RH_FACTORS.includes(value as RhFactor)
 }
 
 export default async function DonorsPage({ searchParams }: PageProps<"/admin/doadores">) {
@@ -28,11 +33,13 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
 
   const params = await searchParams
   const search = param(params.q)
-  const tipo = param(params.tipo)
-  const bloodType = isBloodType(tipo) ? tipo : undefined
+  const aboParam = param(params.abo)
+  const rhParam = param(params.rh)
+  const abo = isAbo(aboParam) ? aboParam : undefined
+  const rh = isRh(rhParam) ? rhParam : undefined
   const page = Math.max(1, Number(param(params.pagina)) || 1)
 
-  const result = await listDonorsAction({ search, bloodType, page })
+  const result = await listDonorsAction({ search, abo, rh, page })
 
   if (result?.serverError) {
     throw new Error(result.serverError)
@@ -47,7 +54,8 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
   function pageHref(target: number) {
     const query = new URLSearchParams()
     if (search) query.set("q", search)
-    if (bloodType) query.set("tipo", bloodType)
+    if (abo) query.set("abo", abo)
+    if (rh) query.set("rh", rh)
     if (target > 1) query.set("pagina", String(target))
 
     return `/admin/doadores${query.size > 0 ? `?${query}` : ""}`
@@ -68,7 +76,7 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-        <DonorFilters key={`${search}-${bloodType}`} search={search} bloodType={bloodType} />
+        <DonorFilters key={`${search}-${abo}-${rh}`} search={search} abo={abo} rh={rh} />
       </section>
 
       <section className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -79,6 +87,7 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
               <th className="px-5 py-3 font-medium">E-mail</th>
               <th className="px-5 py-3 font-medium">Tipo</th>
               <th className="px-5 py-3 font-medium">Última doação</th>
+              <th className="px-5 py-3 font-medium">Último contato</th>
               {(canUpdate || canDelete) && (
                 <th className="px-5 py-3 font-medium">
                   <span className="sr-only">Ações</span>
@@ -89,13 +98,23 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
             {donors.map((donor) => (
               <tr key={donor.id}>
-                <td className="px-5 py-3 font-medium">{donor.name}</td>
+                <td className="px-5 py-3 font-medium">
+                  {donor.name}
+                  {!donor.acceptsCampaigns && (
+                    <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                      não recebe convocações
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">{donor.email}</td>
                 <td className="px-5 py-3 font-semibold text-red-700 dark:text-red-400">
                   {BLOOD_TYPE_LABEL[donor.bloodType]}
                 </td>
                 <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
                   {formatDonationDate(donor.lastDonationAt)}
+                </td>
+                <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
+                  {donor.lastContactAt ? formatDateTime(donor.lastContactAt) : "Nunca"}
                 </td>
                 {(canUpdate || canDelete) && (
                   <td className="px-5 py-3">
@@ -117,8 +136,8 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
             ))}
             {donors.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-zinc-500 dark:text-zinc-400">
-                  {search || bloodType
+                <td colSpan={6} className="px-5 py-10 text-center text-zinc-500 dark:text-zinc-400">
+                  {search || abo || rh
                     ? "Nenhum doador encontrado com esses filtros."
                     : "Nenhum doador cadastrado ainda."}
                 </td>

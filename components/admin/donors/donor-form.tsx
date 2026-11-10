@@ -1,6 +1,6 @@
 "use client"
 
-import { Alert, Button, Select, TextInput } from "@mantine/core"
+import { Alert, Button, Select, Switch, TextInput } from "@mantine/core"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAction } from "next-safe-action/hooks"
@@ -43,6 +43,7 @@ export function DonorForm({ donor }: DonorFormProps) {
       email: String(form.get("email")),
       bloodType: bloodType as BloodTypeKey,
       lastDonationAt: String(form.get("lastDonationAt") ?? ""),
+      acceptsCampaigns: form.get("acceptsCampaigns") === "on",
     }
 
     if (donor) update.execute({ id: donor.id, ...input })
@@ -92,6 +93,13 @@ export function DonorForm({ donor }: DonorFormProps) {
         defaultValue={donor?.lastDonationAt}
         max={todayDateString()}
         error={fieldError("lastDonationAt")}
+      />
+      <Switch
+        name="acceptsCampaigns"
+        label="Aceita receber convocações por e-mail"
+        description="Quando desativado, o doador não entra em nenhuma campanha."
+        defaultChecked={donor?.acceptsCampaigns ?? true}
+        color="red"
       />
 
       <div className="mt-2 flex gap-3">

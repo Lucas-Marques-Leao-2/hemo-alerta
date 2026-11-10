@@ -50,6 +50,27 @@ Ao mudar a configuração do Better Auth (por exemplo, adicionar plugins), rode
 `pnpm auth:generate` para atualizar `prisma/schema/auth.prisma` e depois
 `pnpm prisma migrate dev`.
 
+## Campanhas de convocação
+
+Em `/admin/campanhas` gestores e profissionais criam campanhas que convocam por
+e-mail os doadores dos tipos sanguíneos em necessidade.
+
+- **Rascunho → prévia → envio.** A campanha nasce como rascunho (nada é
+  enviado). A página da campanha mostra a prévia do e-mail e do público; o
+  envio só acontece após confirmação, e apenas para os doadores exibidos.
+- **Quem é convocado** (`lib/campaign.ts`): doadores com exatamente um dos
+  tipos selecionados, que aceitam convocações, cuja última doação foi há mais
+  que o intervalo mínimo e sem envio aceito dentro do intervalo entre
+  convocações. Os intervalos ficam em `/admin/campanhas/configuracoes`.
+- **Envio** (`server/workflows/campaign.workflow.ts`): um Workflow envia os
+  e-mails pela API REST do Cloudflare Email Sending
+  (`lib/email/cloudflare.ts`), a partir de `convocacao@hemoal.gepetojj.com`,
+  com o template de `lib/email/campaign-template.ts`. Cada tentativa fica
+  registrada; falhas podem ser reenviadas sem afetar quem já recebeu.
+
+Configure `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_EMAIL_API_TOKEN` (veja
+`.env.example`) e habilite o domínio no Email Sending da Cloudflare.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

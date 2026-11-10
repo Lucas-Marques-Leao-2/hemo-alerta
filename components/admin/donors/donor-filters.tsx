@@ -4,21 +4,22 @@ import { Button, Select, TextInput } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import { BLOOD_TYPE_KEYS, BLOOD_TYPE_LABEL } from "@/lib/blood-stock-constants"
+import { ABO_GROUPS, RH_FACTOR_LABEL, RH_FACTORS } from "@/lib/donor"
 
-const BLOOD_TYPE_OPTIONS = BLOOD_TYPE_KEYS.map((bloodType) => ({
-  value: bloodType,
-  label: BLOOD_TYPE_LABEL[bloodType],
-}))
+const ABO_OPTIONS = ABO_GROUPS.map((group) => ({ value: group, label: group }))
+const RH_OPTIONS = RH_FACTORS.map((factor) => ({ value: factor, label: RH_FACTOR_LABEL[factor] }))
 
 type DonorFiltersProps = {
   search?: string
-  bloodType?: string
+  abo?: string
+  rh?: string
 }
 
-export function DonorFilters({ search, bloodType }: DonorFiltersProps) {
+export function DonorFilters({ search, abo, rh }: DonorFiltersProps) {
   const router = useRouter()
-  const [selectedBloodType, setSelectedBloodType] = useState(bloodType ?? null)
+  const [selectedAbo, setSelectedAbo] = useState(abo ?? null)
+  const [selectedRh, setSelectedRh] = useState(rh ?? null)
+  const hasFilters = Boolean(search || abo || rh)
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -26,7 +27,8 @@ export function DonorFilters({ search, bloodType }: DonorFiltersProps) {
     const query = String(new FormData(event.currentTarget).get("q") ?? "").trim()
     const params = new URLSearchParams()
     if (query) params.set("q", query)
-    if (selectedBloodType) params.set("tipo", selectedBloodType)
+    if (selectedAbo) params.set("abo", selectedAbo)
+    if (selectedRh) params.set("rh", selectedRh)
 
     router.push(`/admin/doadores${params.size > 0 ? `?${params}` : ""}`)
   }
@@ -41,17 +43,31 @@ export function DonorFilters({ search, bloodType }: DonorFiltersProps) {
         className="min-w-60 flex-1"
       />
       <Select
-        label="Tipo sanguíneo"
+        label="Grupo ABO"
         placeholder="Todos"
-        data={BLOOD_TYPE_OPTIONS}
-        value={selectedBloodType}
-        onChange={setSelectedBloodType}
+        data={ABO_OPTIONS}
+        value={selectedAbo}
+        onChange={setSelectedAbo}
+        clearable
+        className="w-32"
+      />
+      <Select
+        label="Fator Rh"
+        placeholder="Todos"
+        data={RH_OPTIONS}
+        value={selectedRh}
+        onChange={setSelectedRh}
         clearable
         className="w-40"
       />
       <Button type="submit" variant="default">
         Filtrar
       </Button>
+      {hasFilters && (
+        <Button variant="subtle" color="gray" onClick={() => router.push("/admin/doadores")}>
+          Limpar filtros
+        </Button>
+      )}
     </form>
   )
 }

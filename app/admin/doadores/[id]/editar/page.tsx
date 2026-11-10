@@ -35,6 +35,7 @@ export default async function EditDonorPage({ params }: PageProps<"/admin/doador
             email: donor.email,
             bloodType: donor.bloodType,
             lastDonationAt: donor.lastDonationAt ? dateToDateString(donor.lastDonationAt) : "",
+            acceptsCampaigns: donor.acceptsCampaigns,
           }}
         />
       </section>

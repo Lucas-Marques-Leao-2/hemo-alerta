@@ -1,0 +1,84 @@
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+}
+
+enum DeliveryStatus {
+  // Registrado, aguardando o envio ao provedor.
+  PENDING
+  // O provedor aceitou a mensagem (entregue ao servidor do destinatário ou
+  // enfileirada). Não significa que o doador leu o e-mail.
+  ACCEPTED
+  // O provedor recusou a mensagem ou ocorreu um erro no envio.
+  FAILED
+}
+
+// Campanha de convocação: agrupa a mensagem, os tipos sanguíneos-alvo e
+// todas as tentativas de envio feitas a partir dela.
+model Campaign {
+  id         String         @id @default(cuid())
+  title      String
+  subject    String
+  message    String         @db.Text
+  bloodTypes BloodType[]
+  status     CampaignStatus @default(DRAFT)
+
+  createdById   String?
+  createdByName String?
+
+  // Primeiro disparo confirmado e conclusão do envio mais recente.
+  sentAt     DateTime?
+  finishedAt DateTime?
+
+  deliveries CampaignDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("campaigns")
+}
+
+// Uma tentativa de envio para um destinatário. Reenvios criam novas linhas
+// (com `attempt` maior), preservando o histórico das anteriores.
+model CampaignDelivery {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donorId    String?
+  donor      Donor?   @relation(fields: [donorId], references: [id], onDelete: SetNull)
+  attempt    Int      @default(1)
+
+  // Cópia dos dados do destinatário no momento do envio.
+  recipientName  String
+  recipientEmail String
+  bloodType      BloodType
+
+  status DeliveryStatus @default(PENDING)
+  // Resultado bruto do provedor: "delivered", "queued" ou "bounced".
+  providerResult String?
+  errorMessage   String?
+  attemptedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, donorId, attempt])
+  @@index([campaignId, status])
+  @@index([donorId, status, attemptedAt])
+  @@map("campaign_deliveries")
+}
+
+// Configuração única (id "default") das regras de convocação.
+model CampaignSettings {
+  id                     String @id @default("default")
+  // Dias mínimos desde a última doação para o doador ser convocado.
+  minDaysSinceDonation   Int    @default(90)
+  // Dias mínimos entre dois envios aceitos para o mesmo doador.
+  minDaysBetweenContacts Int    @default(7)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("campaign_settings")
+}
