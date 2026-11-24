@@ -13,6 +13,10 @@ export type CampaignEmailInput = {
   message: string
   campaignBloodTypes: BloodTypeKey[]
   appUrl: string
+  // Link pessoal para o doador agendar a doação.
+  scheduleUrl?: string | null
+  // Doações já registradas do doador.
+  donationCount?: number
 }
 
 export const OFFICIAL_DONATION_URL = "https://cidadao.saude.al.gov.br/transparencia/doacoes/"
@@ -91,9 +95,18 @@ export function renderCampaignEmail(input: CampaignEmailInput) {
         `<p style="margin:0 0 16px;font-family:${FONT};font-size:16px;line-height:1.65;color:${COLORS.ink};">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`,
     )
     .join("")
-  const lastDonation = input.lastDonationAt
-    ? `Sua última doação registrada foi em <strong>${formatDate(input.lastDonationAt)}</strong>. Obrigado por continuar com a gente!`
-    : "Não temos registro da sua última doação. Se já doou nos últimos meses, confirme no local se já pode doar novamente."
+  const donationCount = input.donationCount ?? 0
+  const lastDonation =
+    donationCount > 0
+      ? `Você já doou <strong>${donationCount} ${donationCount === 1 ? "vez" : "vezes"}</strong> com a gente${
+          input.lastDonationAt ? `, a última em ${formatDate(input.lastDonationAt)}` : ""
+        }. Obrigado por continuar fazendo parte disso!`
+      : input.lastDonationAt
+        ? `Sua última doação registrada foi em <strong>${formatDate(input.lastDonationAt)}</strong>. Obrigado por continuar com a gente!`
+        : "Não temos registro da sua última doação. Se já doou nos últimos meses, confirme no local se já pode doar novamente."
+  const scheduleUrl = input.scheduleUrl ? escapeHtml(input.scheduleUrl) : null
+  const primaryUrl = scheduleUrl ?? appUrl
+  const primaryLabel = scheduleUrl ? "Escolher o dia da minha doação" : "Ver o estoque de sangue agora"
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -152,12 +165,15 @@ ${body}
 <tr><td align="center" style="padding:24px 32px 8px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td align="center" bgcolor="${COLORS.red}" style="border-radius:999px;background:${COLORS.red};">
-<a href="${appUrl}" target="_blank" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:16px;font-weight:700;color:${COLORS.white};text-decoration:none;border-radius:999px;">Ver o estoque de sangue agora</a>
+<a href="${primaryUrl}" target="_blank" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:16px;font-weight:700;color:${COLORS.white};text-decoration:none;border-radius:999px;">${primaryLabel}</a>
 </td>
 </tr></table>
-<p style="margin:12px 0 0;font-family:${FONT};font-size:13px;color:${COLORS.muted};">
-Locais e horários de coleta: <a href="${OFFICIAL_DONATION_URL}" target="_blank" style="color:${COLORS.red};font-weight:600;">portal oficial de doações de Alagoas</a>
-</p>
+${
+  scheduleUrl
+    ? `<p style="margin:12px 0 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${COLORS.muted};">Leva menos de um minuto e não precisa de cadastro.<br>Não pode agora? <a href="${scheduleUrl}" target="_blank" style="color:${COLORS.red};font-weight:600;">Avise a gente pelo mesmo link</a>.</p>
+<p style="margin:8px 0 0;font-family:${FONT};font-size:13px;color:${COLORS.muted};"><a href="${appUrl}" target="_blank" style="color:${COLORS.red};font-weight:600;">Ver o estoque de sangue agora</a> · <a href="${OFFICIAL_DONATION_URL}" target="_blank" style="color:${COLORS.red};font-weight:600;">locais e horários de coleta</a></p>`
+    : `<p style="margin:12px 0 0;font-family:${FONT};font-size:13px;color:${COLORS.muted};">Locais e horários de coleta: <a href="${OFFICIAL_DONATION_URL}" target="_blank" style="color:${COLORS.red};font-weight:600;">portal oficial de doações de Alagoas</a></p>`
+}
 </td></tr>
 
 <tr><td style="padding:24px 32px 32px;">
@@ -179,7 +195,11 @@ ${REQUIREMENTS.map(
 
 <tr><td style="padding:24px 8px 0;font-family:${FONT};font-size:12px;line-height:1.6;color:${COLORS.subtle};text-align:center;">
 Você recebeu este e-mail porque está cadastrado como doador no Hemo Alerta, iniciativa de acompanhamento do estoque de sangue do HEMOAL.<br>
-Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atualizar seu cadastro.
+${
+  scheduleUrl
+    ? `Não quer mais receber convocações? <a href="${scheduleUrl}#preferencias" target="_blank" style="color:${COLORS.subtle};text-decoration:underline;">Atualize sua preferência</a>.`
+    : "Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atualizar seu cadastro."
+}
 </td></tr>
 
 </table>
@@ -197,10 +217,15 @@ Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atua
     "",
     `Seu tipo sanguíneo: ${BLOOD_TYPE_LABEL[input.donorBloodType]}`,
     `Tipos em necessidade: ${input.campaignBloodTypes.map((type) => BLOOD_TYPE_LABEL[type]).join(", ")}`,
-    input.lastDonationAt
-      ? `Sua última doação registrada: ${formatDate(input.lastDonationAt)}.`
-      : "Não temos registro da sua última doação.",
+    donationCount > 0
+      ? `Você já doou ${donationCount} ${donationCount === 1 ? "vez" : "vezes"} com a gente. Obrigado!`
+      : input.lastDonationAt
+        ? `Sua última doação registrada: ${formatDate(input.lastDonationAt)}.`
+        : "Não temos registro da sua última doação.",
     "",
+    ...(input.scheduleUrl
+      ? [`Escolha o dia da sua doação (ou avise que não pode agora): ${input.scheduleUrl}`, ""]
+      : []),
     `Veja o estoque de sangue atual: ${input.appUrl}`,
     `Locais e horários de coleta: ${OFFICIAL_DONATION_URL}`,
     "",
@@ -209,7 +234,9 @@ Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atua
     "",
     "--",
     "Você recebeu este e-mail porque está cadastrado como doador no Hemo Alerta.",
-    "Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atualizar seu cadastro.",
+    input.scheduleUrl
+      ? `Não quer mais receber convocações? Atualize sua preferência: ${input.scheduleUrl}#preferencias`
+      : "Se não quiser mais receber convocações, fale com a equipe do HEMOAL para atualizar seu cadastro.",
   ].join("\n")
 
   return { subject: input.subject, html, text }

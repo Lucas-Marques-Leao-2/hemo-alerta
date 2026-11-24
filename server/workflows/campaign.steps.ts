@@ -3,6 +3,7 @@ import { RetryableError } from "workflow"
 import { prisma } from "@/lib/db"
 import { renderCampaignEmail } from "@/lib/email/campaign-template"
 import { getAppUrl, sendEmail } from "@/lib/email/cloudflare"
+import { invitationPath } from "@/lib/invitation-token"
 import { CampaignStatus, DeliveryStatus } from "@/prisma/generated/client"
 
 export async function listPendingDeliveries(campaignId: string) {
@@ -31,6 +32,19 @@ export async function sendDelivery(deliveryId: string) {
   // Idempotente: uma nova execução do passo não reenvia o que já foi tratado.
   if (!delivery || delivery.status !== DeliveryStatus.PENDING) return
 
+  const [invitation, donationCount] = delivery.donorId
+    ? await Promise.all([
+        prisma.campaignInvitation.findUnique({
+          where: {
+            campaignId_donorId: { campaignId: delivery.campaignId, donorId: delivery.donorId },
+          },
+          select: { id: true },
+        }),
+        prisma.donation.count({ where: { donorId: delivery.donorId } }),
+      ])
+    : [null, 0]
+  const appUrl = getAppUrl()
+
   const email = renderCampaignEmail({
     donorName: delivery.recipientName,
     donorBloodType: delivery.bloodType,
@@ -39,7 +53,9 @@ export async function sendDelivery(deliveryId: string) {
     title: delivery.campaign.title,
     message: delivery.campaign.message,
     campaignBloodTypes: delivery.campaign.bloodTypes,
-    appUrl: getAppUrl(),
+    appUrl,
+    scheduleUrl: invitation ? `${appUrl}${invitationPath(invitation.id)}` : null,
+    donationCount,
   })
 
   const result = await sendEmail({

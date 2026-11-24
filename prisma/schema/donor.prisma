@@ -1,13 +1,16 @@
 model Donor {
-  id             String    @id @default(cuid())
-  name           String
-  email          String    @unique
-  bloodType      BloodType
-  lastDonationAt DateTime? @db.Date
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  bloodType        BloodType
+  lastDonationAt   DateTime? @db.Date
   // Preferência do doador: quando falso, não entra em nenhuma convocação.
-  acceptsCampaigns Boolean @default(true)
+  acceptsCampaigns Boolean   @default(true)
 
-  deliveries CampaignDelivery[]
+  deliveries   CampaignDelivery[]
+  donations    Donation[]
+  appointments DonationAppointment[]
+  invitations  CampaignInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -68,6 +68,26 @@ e-mail os doadores dos tipos sanguíneos em necessidade.
   com o template de `lib/email/campaign-template.ts`. Cada tentativa fica
   registrada; falhas podem ser reenviadas sem afetar quem já recebeu.
 
+## Agendamentos e doações
+
+- **Link do e-mail** (`/doar/[token]`): cada convocação traz um link pessoal,
+  assinado com HMAC (`lib/invitation-token.ts`), sem login. O doador escolhe
+  dia e período (só datas permitidas pelo intervalo desde a última doação),
+  muda ou cancela o agendamento, avisa que não pode agora, adiciona à agenda
+  (Google ou `.ics`) e pode parar de receber convocações.
+- **Lembrete**: o cron `/api/send-donation-reminders` envia um e-mail na
+  véspera de cada agendamento.
+- **Agendamentos** (`/admin/agendamentos`): próximos, aguardando desfecho
+  (data passada) e histórico. A equipe marca “Doou”, “Não veio” ou cancela,
+  sempre com “Desfazer”.
+- **Doações** : “Registrar doação” na lista de doadores, no perfil e nos
+  agendamentos. Cria o histórico do doador, atualiza a última doação e marca
+  como atendido o agendamento em aberto próximo da data. O registro pode ser
+  feito sem agendamento. Quem registrou pode desfazer por 10 minutos; depois,
+  só gestores removem.
+- **Perfil do doador** (`/admin/doadores/[id]`): histórico de doações,
+  agendamentos, convocações recebidas e quando poderá doar de novo.
+
 Configure `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_EMAIL_API_TOKEN` (veja
 `.env.example`) e habilite o domínio no Email Sending da Cloudflare.
 

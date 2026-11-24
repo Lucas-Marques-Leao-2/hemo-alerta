@@ -7,14 +7,20 @@ export const CAMPAIGNS_PAGE_SIZE = 20
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-export const CAMPAIGN_STATUS_KEYS = ["DRAFT", "SENDING", "SENT"] as const
+export const CAMPAIGN_STATUS_KEYS = ["DRAFT", "SENDING", "SENT", "CLOSED"] as const
 export type CampaignStatusKey = (typeof CAMPAIGN_STATUS_KEYS)[number]
 
 export const CAMPAIGN_STATUS_LABEL: Record<CampaignStatusKey, string> = {
   DRAFT: "Rascunho",
   SENDING: "Enviando",
   SENT: "Enviada",
+  CLOSED: "Encerrada",
 }
+
+export const INVITATION_RESPONSE_LABEL = {
+  SCHEDULED: "Agendou",
+  UNAVAILABLE: "Não pode agora",
+} as const
 
 export type DeliveryStatusKey = "PENDING" | "ACCEPTED" | "FAILED"
 

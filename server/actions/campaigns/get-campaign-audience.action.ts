@@ -22,7 +22,13 @@ export const getCampaignAudienceAction = permissionActionClient({ campaign: ["li
       select: { status: true, bloodTypes: true },
     })
 
-    if (!campaign || campaign.status === CampaignStatus.SENDING) return null
+    if (
+      !campaign ||
+      campaign.status === CampaignStatus.SENDING ||
+      campaign.status === CampaignStatus.CLOSED
+    ) {
+      return null
+    }
 
     const mode = campaign.status === CampaignStatus.DRAFT ? "initial" : "resend"
     const audience =

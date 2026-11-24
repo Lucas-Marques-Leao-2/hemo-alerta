@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { NavLinks } from "@/components/admin/nav-links"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { hasPermission, requireSession } from "@/lib/auth-session"
 import { isRole, ROLE_LABEL } from "@/lib/permissions"
@@ -12,56 +13,35 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await requireSession()
-  const [canListDonors, canListCampaigns, canManageUsers] = await Promise.all([
-    hasPermission(session, { donor: ["list"] }),
-    hasPermission(session, { campaign: ["list"] }),
-    hasPermission(session, { user: ["list"] }),
-  ])
+  const [canListDonors, canListAppointments, canListCampaigns, canManageUsers] =
+    await Promise.all([
+      hasPermission(session, { donor: ["list"] }),
+      hasPermission(session, { appointment: ["list"] }),
+      hasPermission(session, { campaign: ["list"] }),
+      hasPermission(session, { user: ["list"] }),
+    ])
+  const links = [
+    { href: "/admin", label: "Painel" },
+    ...(canListDonors ? [{ href: "/admin/doadores", label: "Doadores" }] : []),
+    ...(canListAppointments ? [{ href: "/admin/agendamentos", label: "Agendamentos" }] : []),
+    ...(canListCampaigns ? [{ href: "/admin/campanhas", label: "Campanhas" }] : []),
+    ...(canManageUsers ? [{ href: "/admin/usuarios", label: "Usuários" }] : []),
+    { href: "/", label: "Site público" },
+  ]
   const { role } = session.user
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-8">
+          <div className="flex flex-wrap items-center gap-6">
             <Link
               href="/admin"
               className="text-sm font-medium uppercase tracking-[0.2em] text-red-700 dark:text-red-400"
             >
               Hemo Alerta
             </Link>
-            <nav className="flex items-center gap-5 text-sm text-zinc-600 dark:text-zinc-400">
-              <Link href="/admin" className="hover:text-zinc-950 dark:hover:text-zinc-50">
-                Painel
-              </Link>
-              {canListDonors && (
-                <Link
-                  href="/admin/doadores"
-                  className="hover:text-zinc-950 dark:hover:text-zinc-50"
-                >
-                  Doadores
-                </Link>
-              )}
-              {canListCampaigns && (
-                <Link
-                  href="/admin/campanhas"
-                  className="hover:text-zinc-950 dark:hover:text-zinc-50"
-                >
-                  Campanhas
-                </Link>
-              )}
-              {canManageUsers && (
-                <Link
-                  href="/admin/usuarios"
-                  className="hover:text-zinc-950 dark:hover:text-zinc-50"
-                >
-                  Usuários
-                </Link>
-              )}
-              <Link href="/" className="hover:text-zinc-950 dark:hover:text-zinc-50">
-                Site público
-              </Link>
-            </nav>
+            <NavLinks links={links} />
           </div>
 
           <div className="flex items-center gap-4">

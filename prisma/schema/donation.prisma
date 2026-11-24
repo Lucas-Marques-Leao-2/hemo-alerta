@@ -1,0 +1,103 @@
+enum AppointmentStatus {
+  // Doador marcou um dia para ir doar.
+  SCHEDULED
+  // A doação foi registrada pela equipe.
+  ATTENDED
+  // O dia passou e a equipe marcou que o doador não foi.
+  MISSED
+  // O doador (ou a equipe) cancelou.
+  CANCELED
+}
+
+enum AppointmentPeriod {
+  MORNING
+  AFTERNOON
+}
+
+enum AppointmentSource {
+  // Agendado pelo próprio doador no link do e-mail.
+  DONOR_LINK
+  // Agendado pela equipe no painel.
+  STAFF
+}
+
+enum InvitationResponse {
+  SCHEDULED
+  UNAVAILABLE
+}
+
+// Doação de fato realizada, registrada pela equipe. Forma o histórico do
+// doador e mantém `Donor.lastDonationAt` atualizado.
+model Donation {
+  id        String   @id @default(cuid())
+  donorId   String
+  donor     Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  donatedAt DateTime @db.Date
+  notes     String?
+
+  // Agendamento atendido por esta doação, quando houver.
+  appointmentId String?              @unique
+  appointment   DonationAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  // Valor de `Donor.lastDonationAt` antes deste registro, para desfazer.
+  previousLastDonationAt DateTime? @db.Date
+
+  recordedById   String?
+  recordedByName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([donorId, donatedAt])
+  @@index([donatedAt])
+  @@map("donations")
+}
+
+// Intenção de doar em um dia, feita pelo doador (link do e-mail) ou pela
+// equipe. Não é uma doação: só vira doação quando a equipe registra.
+model DonationAppointment {
+  id           String              @id @default(cuid())
+  donorId      String
+  donor        Donor               @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  invitationId String?
+  invitation   CampaignInvitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+
+  scheduledFor DateTime          @db.Date
+  period       AppointmentPeriod
+  status       AppointmentStatus @default(SCHEDULED)
+  source       AppointmentSource
+
+  reminderSentAt DateTime?
+  canceledAt     DateTime?
+
+  donation Donation?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, scheduledFor])
+  @@index([donorId, status])
+  @@map("donation_appointments")
+}
+
+// Convite de um doador para uma campanha. O link do e-mail aponta para ele
+// (id + assinatura HMAC), sem expor dados de outros doadores.
+model CampaignInvitation {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donorId    String
+  donor      Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  response    InvitationResponse?
+  respondedAt DateTime?
+  // Primeira vez que o doador abriu o link.
+  openedAt    DateTime?
+
+  appointments DonationAppointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, donorId])
+  @@map("campaign_invitations")
+}

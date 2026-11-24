@@ -19,10 +19,51 @@ export const getCampaignAction = permissionActionClient({ campaign: ["list"] })
         deliveries: {
           orderBy: [{ recipientName: "asc" }, { attempt: "asc" }],
         },
+        invitations: {
+          select: {
+            donorId: true,
+            response: true,
+            openedAt: true,
+            appointments: { select: { status: true } },
+          },
+        },
       },
     })
 
     if (!campaign) return null
 
-    return { ...campaign, summary: summarizeDeliveries(campaign.deliveries) }
+    const { invitations, ...rest } = campaign
+    const byDonor = new Map(invitations.map((invitation) => [invitation.donorId, invitation]))
+
+    // Funil de respostas. "Doaram" conta agendamentos desta convocação com
+    // doação registrada pela equipe; abrir o link é só um indício de leitura.
+    const responses = {
+      invited: invitations.length,
+      opened: invitations.filter((invitation) => invitation.openedAt).length,
+      scheduled: invitations.filter((invitation) => invitation.response === "SCHEDULED").length,
+      unavailable: invitations.filter((invitation) => invitation.response === "UNAVAILABLE").length,
+      donated: invitations.filter((invitation) =>
+        invitation.appointments.some((appointment) => appointment.status === "ATTENDED"),
+      ).length,
+    }
+
+    return {
+      ...rest,
+      summary: summarizeDeliveries(campaign.deliveries),
+      responses,
+      responseByDonor: Object.fromEntries(
+        [...byDonor.entries()].map(([donorId, invitation]) => [
+          donorId,
+          invitation.appointments.some((appointment) => appointment.status === "ATTENDED")
+            ? "Doou"
+            : invitation.response === "SCHEDULED"
+              ? "Agendou"
+              : invitation.response === "UNAVAILABLE"
+                ? "Não pode agora"
+                : invitation.openedAt
+                  ? "Abriu o link"
+                  : "Sem resposta",
+        ]),
+      ) as Record<string, string>,
+    }
   })

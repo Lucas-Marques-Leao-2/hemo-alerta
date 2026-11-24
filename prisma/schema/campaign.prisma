@@ -2,6 +2,8 @@ enum CampaignStatus {
   DRAFT
   SENDING
   SENT
+  // Encerrada: links de resposta deixam de aceitar novos agendamentos.
+  CLOSED
 }
 
 enum DeliveryStatus {
@@ -30,8 +32,10 @@ model Campaign {
   // Primeiro disparo confirmado e conclusão do envio mais recente.
   sentAt     DateTime?
   finishedAt DateTime?
+  closedAt   DateTime?
 
-  deliveries CampaignDelivery[]
+  deliveries  CampaignDelivery[]
+  invitations CampaignInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,7 +59,7 @@ model CampaignDelivery {
   recipientEmail String
   bloodType      BloodType
 
-  status DeliveryStatus @default(PENDING)
+  status         DeliveryStatus @default(PENDING)
   // Resultado bruto do provedor: "delivered", "queued" ou "bounced".
   providerResult String?
   errorMessage   String?

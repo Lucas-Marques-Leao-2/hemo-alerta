@@ -89,7 +89,7 @@ export function DonorForm({ donor }: DonorFormProps) {
         name="lastDonationAt"
         type="date"
         label="Última doação"
-        description="Opcional"
+        description="Opcional. Atualizada automaticamente quando a equipe registra uma doação."
         defaultValue={donor?.lastDonationAt}
         max={todayDateString()}
         error={fieldError("lastDonationAt")}

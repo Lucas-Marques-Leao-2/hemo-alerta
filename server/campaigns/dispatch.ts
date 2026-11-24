@@ -93,6 +93,13 @@ export async function dispatchCampaign({ campaignId, confirmedDonorIds, mode }: 
         bloodType: donor.bloodType,
       })),
     })
+
+    // Um convite por doador e campanha: é o destino do link de agendamento e
+    // continua o mesmo nos reenvios.
+    await tx.campaignInvitation.createMany({
+      data: recipients.map((donor) => ({ campaignId, donorId: donor.id })),
+      skipDuplicates: true,
+    })
   })
 
   try {

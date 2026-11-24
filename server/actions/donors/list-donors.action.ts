@@ -4,7 +4,8 @@ import { z } from "zod"
 
 import { prisma } from "@/lib/db"
 import { ABO_GROUPS, bloodTypesFor, DONORS_PAGE_SIZE, RH_FACTORS } from "@/lib/donor"
-import { DeliveryStatus, type Prisma } from "@/prisma/generated/client"
+import { dateStringToDate, todayDateString } from "@/lib/donor"
+import { AppointmentStatus, DeliveryStatus, type Prisma } from "@/prisma/generated/client"
 import { permissionActionClient } from "@/server/safe-action"
 
 const listDonorsSchema = z.object({
@@ -41,15 +42,28 @@ export const listDonorsAction = permissionActionClient({ donor: ["list"] })
             take: 1,
             select: { attemptedAt: true },
           },
+          // Agendamento em aberto mais próximo (de hoje em diante).
+          appointments: {
+            where: {
+              status: AppointmentStatus.SCHEDULED,
+              scheduledFor: { gte: dateStringToDate(todayDateString()) },
+            },
+            orderBy: { scheduledFor: "asc" },
+            take: 1,
+            select: { id: true, scheduledFor: true, period: true },
+          },
+          _count: { select: { donations: true } },
         },
       }),
       prisma.donor.count({ where }),
     ])
 
     return {
-      donors: donors.map(({ deliveries, ...donor }) => ({
+      donors: donors.map(({ deliveries, appointments, _count, ...donor }) => ({
         ...donor,
         lastContactAt: deliveries[0]?.attemptedAt ?? null,
+        nextAppointment: appointments[0] ?? null,
+        donationCount: _count.donations,
       })),
       total,
       page,

@@ -41,7 +41,7 @@ export default async function AdminDashboardPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <OverviewCard
           label="Bolsas em estoque"
           value={overview ? String(overview.totalBags) : "—"}
@@ -59,14 +59,25 @@ export default async function AdminDashboardPage() {
           }
         />
         <OverviewCard
-          label="Usuários ativos"
-          value={overview ? String(overview.activeUsers) : "—"}
-          detail="Gestores e profissionais com acesso"
+          label="Agendados para hoje"
+          value={overview ? String(overview.appointmentsToday) : "—"}
+          detail={
+            overview && overview.pendingAppointments > 0
+              ? `${overview.pendingAppointments} ${overview.pendingAppointments === 1 ? "agendamento passado aguarda" : "agendamentos passados aguardam"} desfecho`
+              : "Doadores que marcaram para hoje"
+          }
+          href="/admin/agendamentos"
+        />
+        <OverviewCard
+          label="Doações no mês"
+          value={overview ? String(overview.donationsThisMonth) : "—"}
+          detail="Registradas pela equipe"
         />
         <OverviewCard
           label="Doadores cadastrados"
           value={overview ? String(overview.donors) : "—"}
           detail="Recebem avisos de necessidade de doação"
+          href="/admin/doadores"
         />
       </section>
 
@@ -100,16 +111,28 @@ function OverviewCard({
   label,
   value,
   detail,
+  href,
 }: {
   label: string
   value: string
   detail: string
+  href?: string
 }) {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+  const content = (
+    <>
       <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
       <p className="mt-2 text-3xl font-semibold tabular-nums">{value}</p>
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{detail}</p>
-    </div>
+    </>
+  )
+  const className =
+    "rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+
+  return href ? (
+    <Link href={href} className={`${className} transition-colors hover:border-red-300 dark:hover:border-red-800`}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
   )
 }

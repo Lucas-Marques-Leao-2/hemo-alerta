@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { CampaignStatusBadge } from "@/components/admin/campaigns/campaign-status-badge"
+import { CloseCampaignButton } from "@/components/admin/campaigns/close-campaign-button"
 import { DeleteCampaignButton } from "@/components/admin/campaigns/delete-campaign-button"
 import { SendCampaignPanel } from "@/components/admin/campaigns/send-campaign-panel"
 import { SendingRefresher } from "@/components/admin/campaigns/sending-refresher"
@@ -49,8 +50,9 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
   if (!campaign) notFound()
 
   const audience = audienceResult.data
-  const { summary } = campaign
+  const { summary, responses } = campaign
   const isDraft = campaign.status === "DRAFT"
+  const isClosed = campaign.status === "CLOSED"
 
   // Prévia com o primeiro destinatário elegível ou um doador de exemplo.
   const sample = audience?.eligible[0]
@@ -88,8 +90,10 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
             {campaign.finishedAt &&
               campaign.status === "SENT" &&
               ` · Último envio concluído em ${formatDateTime(campaign.finishedAt)}`}
+            {campaign.closedAt && ` · Encerrada em ${formatDateTime(campaign.closedAt)}`}
           </p>
         </div>
+        {campaign.status === "SENT" && canUpdate && <CloseCampaignButton campaignId={campaign.id} />}
         {isDraft && (
           <div className="flex gap-2">
             {canDelete && <DeleteCampaignButton campaign={campaign} />}
@@ -123,6 +127,25 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
               value={summary.pending}
               detail={campaign.status === "SENDING" ? "Envio em andamento…" : "—"}
             />
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-medium">Respostas dos doadores</h2>
+              <Link href="/admin/agendamentos" className="text-sm text-red-700 hover:underline dark:text-red-400">
+                Ver agendamentos →
+              </Link>
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+              <Funnel label="Convidados" value={responses.invited} />
+              <Funnel label="Abriram o link" value={responses.opened} base={responses.invited} />
+              <Funnel label="Agendaram" value={responses.scheduled} base={responses.invited} tone="success" />
+              <Funnel label="Não podem agora" value={responses.unavailable} base={responses.invited} />
+              <Funnel label="Doaram" value={responses.donated} base={responses.invited} tone="success" />
+            </dl>
+            <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+              Agendar é uma intenção; “Doaram” conta apenas doações registradas pela equipe. “Abriram
+              o link” pode incluir aberturas automáticas feitas por provedores de e-mail.
+            </p>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             “Aceito pelo provedor” indica que a mensagem foi recebida pela Cloudflare (e, quando
@@ -176,6 +199,10 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
                 emailConfigured={isEmailConfigured()}
               />
             </section>
+          ) : isClosed ? (
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+              Campanha encerrada. Os links não aceitam novos agendamentos e não há reenvios.
+            </section>
           ) : (
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
               Envio em andamento. Esta página é atualizada automaticamente.
@@ -207,6 +234,7 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
                 <th className="px-5 py-3 font-medium">Tentativa</th>
                 <th className="px-5 py-3 font-medium">Resultado</th>
                 <th className="px-5 py-3 font-medium">Data</th>
+                <th className="px-5 py-3 font-medium">Resposta</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
@@ -238,11 +266,14 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
                   <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
                     {delivery.attemptedAt ? formatDateTime(delivery.attemptedAt) : "—"}
                   </td>
+                  <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
+                    {delivery.donorId ? (campaign.responseByDonor[delivery.donorId] ?? "—") : "—"}
+                  </td>
                 </tr>
               ))}
               {campaign.deliveries.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-zinc-500 dark:text-zinc-400">
                     Nenhuma tentativa registrada.
                   </td>
                 </tr>
@@ -278,6 +309,36 @@ function SummaryCard({
       <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
       <p className={`mt-2 text-3xl font-semibold tabular-nums ${color}`}>{value}</p>
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{detail}</p>
+    </div>
+  )
+}
+
+function Funnel({
+  label,
+  value,
+  base,
+  tone,
+}: {
+  label: string
+  value: number
+  base?: number
+  tone?: "success"
+}) {
+  return (
+    <div>
+      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{label}</dt>
+      <dd
+        className={`mt-1 text-2xl font-semibold tabular-nums ${
+          tone === "success" ? "text-emerald-700 dark:text-emerald-400" : ""
+        }`}
+      >
+        {value}
+        {base !== undefined && (
+          <span className="ml-1.5 text-sm font-normal text-zinc-500">
+            {base > 0 ? `${Math.round((value / base) * 100)}%` : "—"}
+          </span>
+        )}
+      </dd>
     </div>
   )
 }
