@@ -71,7 +71,16 @@ export const campaignSettingsSchema = z.object({
     .int("Use um número inteiro de dias.")
     .min(0, "O valor não pode ser negativo.")
     .max(365, "Use no máximo 365 dias."),
+  // Vagas por período; nulo = sem limite.
+  morningCapacity: z.number().int().min(1, "Use ao menos 1 vaga.").max(1000).nullable(),
+  afternoonCapacity: z.number().int().min(1, "Use ao menos 1 vaga.").max(1000).nullable(),
+  closedWeekdays: z
+    .array(z.number().int().min(0).max(6))
+    .max(6, "Deixe ao menos um dia com coleta.")
+    .transform((days) => [...new Set(days)].sort()),
 })
+
+export type CampaignSettingsInput = z.input<typeof campaignSettingsSchema>
 
 // Motivos de exclusão, na ordem em que são avaliados. Cada doador recebe só o
 // primeiro motivo que se aplica, para que a prévia não conte ninguém duas vezes.

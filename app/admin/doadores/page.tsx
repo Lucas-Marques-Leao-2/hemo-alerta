@@ -3,6 +3,7 @@ import Link from "next/link"
 import { RecordDonationButton } from "@/components/admin/donations/record-donation-button"
 import { DeleteDonorButton } from "@/components/admin/donors/delete-donor-button"
 import { DonorFilters } from "@/components/admin/donors/donor-filters"
+import { ExportMenu } from "@/components/admin/export-menu"
 import { ButtonLink } from "@/components/button-link"
 import { hasPermission, requirePermission } from "@/lib/auth-session"
 import { BLOOD_TYPE_LABEL } from "@/lib/blood-stock-constants"
@@ -34,11 +35,12 @@ function isRh(value: string | undefined): value is RhFactor {
 
 export default async function DonorsPage({ searchParams }: PageProps<"/admin/doadores">) {
   const session = await requirePermission({ donor: ["list"] })
-  const [canCreate, canUpdate, canDelete, canRecord] = await Promise.all([
+  const [canCreate, canUpdate, canDelete, canRecord, canExport] = await Promise.all([
     hasPermission(session, { donor: ["create"] }),
     hasPermission(session, { donor: ["update"] }),
     hasPermission(session, { donor: ["delete"] }),
     hasPermission(session, { donation: ["create"] }),
+    hasPermission(session, { report: ["export"] }),
   ])
   const hasActions = canUpdate || canDelete || canRecord
 
@@ -81,9 +83,31 @@ export default async function DonorsPage({ searchParams }: PageProps<"/admin/doa
             Doadores que recebem avisos quando há necessidade de sangue do seu tipo.
           </p>
         </div>
-        {canCreate && (
-          <ButtonLink href="/admin/doadores/novo">Novo doador</ButtonLink>
-        )}
+        <div className="flex gap-3">
+          {canExport && (
+            <ExportMenu
+              items={[
+                {
+                  label: "Doadores",
+                  description: search || abo || rh ? "Com os filtros atuais" : "Todos os doadores",
+                  href: `/api/export/doadores${(() => {
+                    const query = new URLSearchParams()
+                    if (search) query.set("q", search)
+                    if (abo) query.set("abo", abo)
+                    if (rh) query.set("rh", rh)
+                    return query.size > 0 ? `?${query}` : ""
+                  })()}`,
+                },
+                {
+                  label: "Histórico de doações",
+                  description: "Todas as doações registradas",
+                  href: "/api/export/doacoes",
+                },
+              ]}
+            />
+          )}
+          {canCreate && <ButtonLink href="/admin/doadores/novo">Novo doador</ButtonLink>}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">

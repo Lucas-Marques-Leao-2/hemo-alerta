@@ -211,7 +211,7 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
             <p className="px-1 text-xs text-zinc-500 dark:text-zinc-400">
               Rascunhos não disparam mensagens. Os destinatários são recalculados no momento da
               confirmação. Ajuste os intervalos em{" "}
-              <Link href="/admin/campanhas/configuracoes" className="underline">
+              <Link href="/admin/configuracoes" className="underline">
                 regras de convocação
               </Link>
               .

@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import { auth } from "@/lib/auth"
 import { roles } from "@/lib/permissions"
+import { audit, sessionActor } from "@/server/audit"
 import { permissionActionClient } from "@/server/safe-action"
 
 const createUserSchema = z.object({
@@ -23,7 +24,7 @@ export const createUserAction = permissionActionClient({
   user: ["create", "set-role"],
 })
   .inputSchema(createUserSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx: { session } }) => {
     try {
       // Repassar os headers faz o próprio Better Auth revalidar a sessão e as
       // permissões de quem está criando o usuário.
@@ -38,6 +39,13 @@ export const createUserAction = permissionActionClient({
 
       throw error
     }
+
+    await audit({
+      actor: sessionActor(session),
+      action: "user.create",
+      entityType: "user",
+      summary: `${parsedInput.name} (${parsedInput.email}) · ${parsedInput.role}`,
+    })
 
     revalidatePath("/admin/usuarios")
   })

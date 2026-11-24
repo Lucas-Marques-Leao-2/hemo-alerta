@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { dispatchCampaign } from "@/server/campaigns/dispatch"
+import { sessionActor } from "@/server/audit"
 import { permissionActionClient } from "@/server/safe-action"
 
 const sendCampaignSchema = z.object({
@@ -14,11 +15,12 @@ const sendCampaignSchema = z.object({
 
 export const sendCampaignAction = permissionActionClient({ campaign: ["send"] })
   .inputSchema(sendCampaignSchema)
-  .action(async ({ parsedInput: { id, mode, donorIds } }) => {
+  .action(async ({ parsedInput: { id, mode, donorIds }, ctx: { session } }) => {
     const result = await dispatchCampaign({
       campaignId: id,
       mode,
       confirmedDonorIds: donorIds,
+      actor: sessionActor(session),
     })
 
     revalidatePath("/admin/campanhas")

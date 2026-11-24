@@ -67,8 +67,8 @@ export default async function CampaignsPage({ searchParams }: PageProps<"/admin/
           </p>
         </div>
         <div className="flex gap-3">
-          <ButtonLink href="/admin/campanhas/configuracoes" variant="default">
-            Regras de convocação
+          <ButtonLink href="/admin/configuracoes" variant="default">
+            Configurações
           </ButtonLink>
           {canCreate && <ButtonLink href="/admin/campanhas/nova">Nova campanha</ButtonLink>}
         </div>

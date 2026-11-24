@@ -5,13 +5,17 @@ import { adminAc, defaultStatements } from "better-auth/plugins/admin/access"
 // vêm do plugin admin do Better Auth; `donor` é o cadastro de doadores e
 // `campaign` as campanhas de convocação (`configure` altera as regras de
 // intervalo entre convocações), `donation` o histórico de doações realizadas e
-// `appointment` os agendamentos feitos pelos doadores ou pela equipe.
+// `appointment` os agendamentos feitos pelos doadores ou pela equipe e
+// `audit` o registro de auditoria. `report.export` gera planilhas CSV com dados
+// pessoais (doadores, doações e agendamentos).
 export const statement = {
   ...defaultStatements,
   donor: ["create", "list", "update", "delete"],
   campaign: ["create", "list", "update", "delete", "send", "configure"],
   donation: ["create", "list", "delete"],
   appointment: ["create", "list", "update"],
+  audit: ["list"],
+  report: ["export"],
 } as const
 
 export const ac = createAccessControl(statement)
@@ -23,6 +27,8 @@ export const admin = ac.newRole({
   campaign: ["create", "list", "update", "delete", "send", "configure"],
   donation: ["create", "list", "delete"],
   appointment: ["create", "list", "update"],
+  audit: ["list"],
+  report: ["export"],
 })
 
 // Profissional do HEMOAL ou de unidade subordinada: opera o cadastro de

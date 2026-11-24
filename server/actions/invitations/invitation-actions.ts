@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { prisma } from "@/lib/db"
+import { DONOR_LINK_ACTOR } from "@/lib/audit"
 import { scheduleSchema } from "@/lib/donation"
 import {
   AppointmentSource,
@@ -11,6 +12,7 @@ import {
   InvitationResponse,
 } from "@/prisma/generated/client"
 import { revalidateDonationViews } from "@/server/actions/donations/revalidate"
+import { audit } from "@/server/audit"
 import { scheduleDonation } from "@/server/donations/appointments"
 import { findInvitationByToken, isInvitationOpen } from "@/server/donations/invitations"
 import { actionClient } from "@/server/safe-action"
@@ -21,6 +23,8 @@ import { actionClient } from "@/server/safe-action"
 const tokenSchema = z.object({
   token: z.string().min(10).max(200),
 })
+
+const DONOR_ACTOR = { id: null, name: DONOR_LINK_ACTOR }
 
 const INVALID_LINK = "Este link não é válido. Abra novamente o link do e-mail que você recebeu."
 const CLOSED = "Esta convocação foi encerrada e não aceita novos agendamentos."
@@ -50,6 +54,7 @@ export const scheduleFromInvitationAction = actionClient
       period,
       source: AppointmentSource.DONOR_LINK,
       invitationId: invitation.id,
+      actor: DONOR_ACTOR,
     })
 
     refresh(token, invitation.donorId)
@@ -62,10 +67,20 @@ export const cancelFromInvitationAction = actionClient
   .action(async ({ parsedInput: { token } }) => {
     const invitation = await requireInvitation(token, { requireOpen: false })
 
-    await prisma.donationAppointment.updateMany({
+    const { count } = await prisma.donationAppointment.updateMany({
       where: { donorId: invitation.donorId, status: AppointmentStatus.SCHEDULED },
       data: { status: AppointmentStatus.CANCELED, canceledAt: new Date() },
     })
+
+    if (count > 0) {
+      await audit({
+        actor: DONOR_ACTOR,
+        action: "appointment.cancel",
+        entityType: "appointment",
+        donorId: invitation.donorId,
+        summary: `${invitation.donor.name} cancelou o agendamento`,
+      })
+    }
 
     refresh(token, invitation.donorId)
   })
@@ -87,6 +102,16 @@ export const declineInvitationAction = actionClient
       }),
     ])
 
+    await audit({
+      actor: DONOR_ACTOR,
+      action: "invitation.decline",
+      entityType: "donor",
+      entityId: invitation.donorId,
+      donorId: invitation.donorId,
+      summary: `${invitation.donor.name}: ${invitation.campaign.title}`,
+      metadata: { campaignId: invitation.campaignId },
+    })
+
     refresh(token, invitation.donorId)
   })
 
@@ -99,6 +124,16 @@ export const setContactPreferenceAction = actionClient
     await prisma.donor.update({
       where: { id: invitation.donorId },
       data: { acceptsCampaigns },
+    })
+
+    await audit({
+      actor: DONOR_ACTOR,
+      action: "donor.preference",
+      entityType: "donor",
+      entityId: invitation.donorId,
+      donorId: invitation.donorId,
+      summary: `${invitation.donor.name}: ${acceptsCampaigns ? "voltou a receber" : "deixou de receber"} convocações`,
+      metadata: { acceptsCampaigns },
     })
 
     refresh(token, invitation.donorId)

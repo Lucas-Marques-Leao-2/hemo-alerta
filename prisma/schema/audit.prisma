@@ -1,0 +1,24 @@
+// Registro de auditoria: quem fez o quê, quando e sobre qual registro.
+// Linhas nunca são alteradas; nomes são copiados para continuarem legíveis
+// mesmo se o usuário ou o doador for excluído.
+model AuditLog {
+  id         String   @id @default(cuid())
+  // Usuário do painel. Nulo quando a ação veio do doador (link do e-mail) ou
+  // do sistema.
+  actorId    String?
+  actorName  String
+  action     String
+  entityType String
+  entityId   String?
+  // Doador afetado, para montar a atividade no perfil.
+  donorId    String?
+  summary    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, createdAt])
+  @@index([donorId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}

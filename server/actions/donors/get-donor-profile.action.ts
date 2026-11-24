@@ -5,7 +5,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/db"
 import { nextEligibleDate } from "@/lib/donation"
 import { todayDateString } from "@/lib/donor"
-import { getCampaignRules } from "@/server/campaigns/audience"
+import { getSettings } from "@/server/campaigns/audience"
 import { permissionActionClient } from "@/server/safe-action"
 
 const getDonorProfileSchema = z.object({
@@ -15,7 +15,7 @@ const getDonorProfileSchema = z.object({
 export const getDonorProfileAction = permissionActionClient({ donor: ["list"] })
   .inputSchema(getDonorProfileSchema)
   .action(async ({ parsedInput: { id } }) => {
-    const [donor, rules] = await Promise.all([
+    const [donor, rules, activity] = await Promise.all([
       prisma.donor.findUnique({
         where: { id },
         include: {
@@ -32,7 +32,8 @@ export const getDonorProfileAction = permissionActionClient({ donor: ["list"] })
           },
         },
       }),
-      getCampaignRules(),
+      getSettings(),
+      prisma.auditLog.findMany({ where: { donorId: id }, orderBy: { createdAt: "desc" }, take: 15 }),
     ])
 
     if (!donor) return null
@@ -43,5 +44,6 @@ export const getDonorProfileAction = permissionActionClient({ donor: ["list"] })
       ...donor,
       eligibleFrom: eligibleFrom && eligibleFrom > todayDateString() ? eligibleFrom : null,
       rules,
+      activity,
     }
   })

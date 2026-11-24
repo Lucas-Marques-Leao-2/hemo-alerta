@@ -1,13 +1,12 @@
 import "server-only"
 
-import { nextEligibleDate, schedulingDates } from "@/lib/donation"
+import { nextEligibleDate } from "@/lib/donation"
 import { prisma } from "@/lib/db"
 import { dateToDateString, todayDateString } from "@/lib/donor"
 import { verifyInvitationToken } from "@/lib/invitation-token"
 import { AppointmentStatus, CampaignStatus } from "@/prisma/generated/client"
-import { getCampaignRules } from "@/server/campaigns/audience"
 
-import { findActiveAppointment } from "./appointments"
+import { findActiveAppointment, getDonorSchedulingOptions } from "./appointments"
 
 // Convite válido a partir do token do link, ou null.
 export async function findInvitationByToken(token: string) {
@@ -40,8 +39,8 @@ export async function getInvitationView(token: string) {
     })
   }
 
-  const [rules, appointment, stock, donationCount, peersScheduled] = await Promise.all([
-    getCampaignRules(),
+  const [options, appointment, stock, donationCount, peersScheduled] = await Promise.all([
+    getDonorSchedulingOptions(donor.id, donor.lastDonationAt),
     findActiveAppointment(donor.id),
     prisma.bloodStock.findFirst({
       where: { bloodType: donor.bloodType },
@@ -73,10 +72,11 @@ export async function getInvitationView(token: string) {
       donationCount,
     },
     eligibleFrom: (() => {
-      const eligible = nextEligibleDate(donor.lastDonationAt, rules.minDaysSinceDonation)
+      const eligible = nextEligibleDate(donor.lastDonationAt, options.settings.minDaysSinceDonation)
       return eligible && eligible > todayDateString() ? eligible : null
     })(),
-    dates: schedulingDates(donor.lastDonationAt, rules.minDaysSinceDonation),
+    dates: options.dates,
+    fullSlots: options.fullSlots,
     appointment: appointment
       ? {
           date: dateToDateString(appointment.scheduledFor),

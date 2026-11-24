@@ -5,6 +5,7 @@ import { z } from "zod"
 import { hasPermission } from "@/lib/auth-session"
 import { prisma } from "@/lib/db"
 import { UNDO_WINDOW_MS } from "@/lib/donation"
+import { sessionActor } from "@/server/audit"
 import { removeDonation } from "@/server/donations/donations"
 import { authActionClient } from "@/server/safe-action"
 
@@ -33,7 +34,7 @@ export const deleteDonationAction = authActionClient
       throw new Error("Você não tem permissão para remover este registro.")
     }
 
-    const { donorId } = await removeDonation(id)
+    const { donorId } = await removeDonation(id, sessionActor(session), canUndo ? "undo" : "remove")
 
     revalidateDonationViews(donorId)
   })

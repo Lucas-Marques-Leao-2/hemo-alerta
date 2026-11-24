@@ -1,9 +1,10 @@
 import "server-only"
 
-import { addDays } from "@/lib/donation"
+import { addDays, formatLongDate } from "@/lib/donation"
 import { prisma } from "@/lib/db"
 import { dateStringToDate, dateToDateString } from "@/lib/donor"
 import { AppointmentStatus } from "@/prisma/generated/client"
+import { audit, type AuditActor } from "@/server/audit"
 
 type Recorder = { id: string; name: string }
 
@@ -86,6 +87,19 @@ export async function recordDonation({
 
     const donationCount = await tx.donation.count({ where: { donorId } })
 
+    await audit(
+      {
+        actor: recordedBy,
+        action: "donation.record",
+        entityType: "donation",
+        entityId: donation.id,
+        donorId,
+        summary: `${donor.name}: doação em ${formatLongDate(donatedAt)}${appointment ? " (agendamento atendido)" : ""}`,
+        metadata: { donatedAt, appointmentId: appointment?.id ?? null, notes: notes || null },
+      },
+      tx,
+    )
+
     return {
       id: donation.id,
       donorName: donor.name,
@@ -100,9 +114,12 @@ export async function recordDonation({
 
 // Remove um registro de doação, restaurando a última doação do doador e o
 // agendamento que ela havia atendido.
-export async function removeDonation(donationId: string) {
+export async function removeDonation(donationId: string, actor: AuditActor, kind: "undo" | "remove") {
   return prisma.$transaction(async (tx) => {
-    const donation = await tx.donation.findUnique({ where: { id: donationId } })
+    const donation = await tx.donation.findUnique({
+      where: { id: donationId },
+      include: { donor: { select: { name: true } } },
+    })
     if (!donation) throw new Error("Esta doação já foi removida.")
 
     await tx.donation.delete({ where: { id: donationId } })
@@ -128,6 +145,19 @@ export async function removeDonation(donationId: string) {
         : null
 
     await tx.donor.update({ where: { id: donation.donorId }, data: { lastDonationAt } })
+
+    await audit(
+      {
+        actor,
+        action: kind === "undo" ? "donation.undo" : "donation.remove",
+        entityType: "donation",
+        entityId: donationId,
+        donorId: donation.donorId,
+        summary: `${donation.donor.name}: doação de ${formatLongDate(dateToDateString(donation.donatedAt))}`,
+        metadata: { donatedAt: dateToDateString(donation.donatedAt), notes: donation.notes },
+      },
+      tx,
+    )
 
     return { donorId: donation.donorId }
   })

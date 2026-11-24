@@ -61,7 +61,7 @@ e-mail os doadores dos tipos sanguíneos em necessidade.
 - **Quem é convocado** (`lib/campaign.ts`): doadores com exatamente um dos
   tipos selecionados, que aceitam convocações, cuja última doação foi há mais
   que o intervalo mínimo e sem envio aceito dentro do intervalo entre
-  convocações. Os intervalos ficam em `/admin/campanhas/configuracoes`.
+  convocações. Os intervalos ficam em `/admin/configuracoes`.
 - **Envio** (`server/workflows/campaign.workflow.ts`): um Workflow envia os
   e-mails pela API REST do Cloudflare Email Sending
   (`lib/email/cloudflare.ts`), a partir de `convocacao@hemoal.gepetojj.com`,
@@ -87,6 +87,23 @@ e-mail os doadores dos tipos sanguíneos em necessidade.
   só gestores removem.
 - **Perfil do doador** (`/admin/doadores/[id]`): histórico de doações,
   agendamentos, convocações recebidas e quando poderá doar de novo.
+
+## Operação da equipe
+
+- **Hoje** (`/admin/hoje`): tela da recepção, pensada para tablet. Busca
+  grande, agendados do dia por período com “Doou” e “Não veio”, encaixe de
+  quem chega sem agendamento, lista de quem já doou, atualização automática a
+  cada minuto e versão para imprimir.
+- **Vagas e dias sem coleta** (`/admin/configuracoes`): limite de vagas por
+  período e dias da semana sem coleta. O doador só vê horários com vaga (com
+  trava no banco contra duas pessoas pegando a última vaga); a equipe pode
+  encaixar acima do limite.
+- **Exportar CSV** (`/api/export/{doadores,doacoes,agendamentos}`): planilhas
+  com os filtros da tela, no formato do Excel em português. Só gestores
+  exportam, e cada exportação fica registrada.
+- **Auditoria** (`/admin/auditoria`): quem registrou, desfez, removeu,
+  agendou, enviou ou exportou o quê e quando, inclusive ações feitas pelo
+  doador no link do e-mail. O perfil do doador mostra a atividade recente dele.
 
 Configure `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_EMAIL_API_TOKEN` (veja
 `.env.example`) e habilite o domínio no Email Sending da Cloudflare.

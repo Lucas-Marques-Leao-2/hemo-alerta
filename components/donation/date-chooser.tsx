@@ -20,6 +20,8 @@ type DateChooserProps = {
   onDateChange: (date: string) => void
   onPeriodChange: (period: AppointmentPeriodKey) => void
   initialVisible?: number
+  // Períodos sem vaga em cada data (só para o agendamento pelo doador).
+  fullSlots?: Record<string, AppointmentPeriodKey[]>
 }
 
 // Escolha de dia em botões grandes (fáceis de tocar no celular) e do período.
@@ -31,7 +33,19 @@ export function DateChooser({
   onDateChange,
   onPeriodChange,
   initialVisible = 12,
+  fullSlots = {},
 }: DateChooserProps) {
+  const fullPeriods = date ? (fullSlots[date] ?? []) : []
+
+  function selectDate(option: string) {
+    onDateChange(option)
+    // O período escolhido lotou nesse dia: troca para o que tem vaga.
+    const full = fullSlots[option] ?? []
+    if (full.includes(period)) {
+      const free = APPOINTMENT_PERIODS.find((value) => !full.includes(value))
+      if (free) onPeriodChange(free)
+    }
+  }
   const [showAll, setShowAll] = useState(
     () => date !== null && dates.indexOf(date) >= initialVisible,
   )
@@ -52,7 +66,7 @@ export function DateChooser({
                 type="button"
                 aria-pressed={selected}
                 aria-label={formatLongDate(option)}
-                onClick={() => onDateChange(option)}
+                onClick={() => selectDate(option)}
                 className={`flex min-h-16 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 ${
                   selected
                     ? "border-red-600 bg-red-600 text-white shadow-sm"
@@ -93,7 +107,10 @@ export function DateChooser({
           onChange={(value) => onPeriodChange(value as AppointmentPeriodKey)}
           data={APPOINTMENT_PERIODS.map((value) => ({
             value,
-            label: APPOINTMENT_PERIOD_LABEL[value],
+            label: fullPeriods.includes(value)
+              ? `${APPOINTMENT_PERIOD_LABEL[value]} (lotado)`
+              : APPOINTMENT_PERIOD_LABEL[value],
+            disabled: fullPeriods.includes(value),
           }))}
         />
       </div>

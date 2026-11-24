@@ -74,13 +74,21 @@ model CampaignDelivery {
   @@map("campaign_deliveries")
 }
 
-// Configuração única (id "default") das regras de convocação.
+// Configuração única (id "default") das regras de convocação e do atendimento.
 model CampaignSettings {
   id                     String @id @default("default")
   // Dias mínimos desde a última doação para o doador ser convocado.
   minDaysSinceDonation   Int    @default(90)
   // Dias mínimos entre dois envios aceitos para o mesmo doador.
   minDaysBetweenContacts Int    @default(7)
+
+  // Vagas por período em cada dia (agendamentos em aberto ou atendidos).
+  // Nulo = sem limite.
+  morningCapacity   Int?
+  afternoonCapacity Int?
+  // Dias da semana sem coleta (0 = domingo ... 6 = sábado). Não aparecem
+  // para agendamento.
+  closedWeekdays    Int[] @default([])
 
   updatedAt DateTime @updatedAt
 

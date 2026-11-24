@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { AppointmentActions } from "@/components/admin/appointments/appointment-actions"
 import { AppointmentFilters } from "@/components/admin/appointments/appointment-filters"
+import { ExportMenu } from "@/components/admin/export-menu"
 import { hasPermission, requirePermission } from "@/lib/auth-session"
 import { BLOOD_TYPE_LABEL } from "@/lib/blood-stock-constants"
 import {
@@ -49,9 +50,10 @@ function dateParam(value: string | string[] | undefined) {
 
 export default async function AppointmentsPage({ searchParams }: PageProps<"/admin/agendamentos">) {
   const session = await requirePermission({ appointment: ["list"] })
-  const [canUpdate, canRecord] = await Promise.all([
+  const [canUpdate, canRecord, canExport] = await Promise.all([
     hasPermission(session, { appointment: ["update"] }),
     hasPermission(session, { donation: ["create"] }),
+    hasPermission(session, { report: ["export"] }),
   ])
 
   const params = await searchParams
@@ -92,11 +94,23 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/adm
 
   return (
     <>
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight">Agendamentos</h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Quando os doadores pretendem ir doar. Registre a doação quando eles chegarem.
-        </p>
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Agendamentos</h1>
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+            Quando os doadores pretendem ir doar. Registre a doação quando eles chegarem.
+          </p>
+        </div>
+        {canExport && (
+          <ExportMenu
+            items={[
+              {
+                label: "Exportar CSV",
+                href: `/api/export/agendamentos?${viewHref(view).split("?")[1]}`,
+              },
+            ]}
+          />
+        )}
       </section>
 
       <nav className="flex flex-wrap gap-2" aria-label="Visões de agendamentos">

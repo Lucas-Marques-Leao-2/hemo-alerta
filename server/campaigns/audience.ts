@@ -10,7 +10,17 @@ import {
 import { prisma } from "@/lib/db"
 import { DeliveryStatus, type Prisma } from "@/prisma/generated/client"
 
-export async function getCampaignRules(): Promise<CampaignRules> {
+export type SchedulingSettings = {
+  morningCapacity: number | null
+  afternoonCapacity: number | null
+  closedWeekdays: number[]
+}
+
+export type AllSettings = CampaignRules & SchedulingSettings
+
+// Todas as configurações (convocação + atendimento), com valores padrão
+// enquanto ninguém salvou a tela de configurações.
+export async function getSettings(): Promise<AllSettings> {
   const settings = await prisma.campaignSettings.findUnique({ where: { id: "default" } })
 
   return {
@@ -18,7 +28,16 @@ export async function getCampaignRules(): Promise<CampaignRules> {
       settings?.minDaysSinceDonation ?? DEFAULT_CAMPAIGN_SETTINGS.minDaysSinceDonation,
     minDaysBetweenContacts:
       settings?.minDaysBetweenContacts ?? DEFAULT_CAMPAIGN_SETTINGS.minDaysBetweenContacts,
+    morningCapacity: settings?.morningCapacity ?? null,
+    afternoonCapacity: settings?.afternoonCapacity ?? null,
+    closedWeekdays: settings?.closedWeekdays ?? [],
   }
+}
+
+export async function getCampaignRules(): Promise<CampaignRules> {
+  const { minDaysSinceDonation, minDaysBetweenContacts } = await getSettings()
+
+  return { minDaysSinceDonation, minDaysBetweenContacts }
 }
 
 // Doadores com o último envio aceito pelo provedor (em qualquer campanha).

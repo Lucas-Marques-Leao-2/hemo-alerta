@@ -13,26 +13,30 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await requireSession()
-  const [canListDonors, canListAppointments, canListCampaigns, canManageUsers] =
+  const [canListDonors, canListAppointments, canListCampaigns, canManageUsers, canAudit, canConfigure] =
     await Promise.all([
       hasPermission(session, { donor: ["list"] }),
       hasPermission(session, { appointment: ["list"] }),
       hasPermission(session, { campaign: ["list"] }),
       hasPermission(session, { user: ["list"] }),
+      hasPermission(session, { audit: ["list"] }),
+      hasPermission(session, { campaign: ["configure"] }),
     ])
   const links = [
     { href: "/admin", label: "Painel" },
+    ...(canListAppointments ? [{ href: "/admin/hoje", label: "Hoje" }] : []),
     ...(canListDonors ? [{ href: "/admin/doadores", label: "Doadores" }] : []),
     ...(canListAppointments ? [{ href: "/admin/agendamentos", label: "Agendamentos" }] : []),
     ...(canListCampaigns ? [{ href: "/admin/campanhas", label: "Campanhas" }] : []),
     ...(canManageUsers ? [{ href: "/admin/usuarios", label: "Usuários" }] : []),
-    { href: "/", label: "Site público" },
+    ...(canAudit ? [{ href: "/admin/auditoria", label: "Auditoria" }] : []),
+    ...(canConfigure ? [{ href: "/admin/configuracoes", label: "Configurações" }] : []),
   ]
   const { role } = session.user
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <header className="border-b border-zinc-200 bg-white print:hidden dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex flex-wrap items-center gap-6">
             <Link
@@ -56,7 +60,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10 print:max-w-none print:p-0">
         {children}
       </main>
     </div>

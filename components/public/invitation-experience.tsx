@@ -199,6 +199,7 @@ export function InvitationExperience({
             onDateChange={setDate}
             onPeriodChange={setPeriod}
             initialVisible={VISIBLE_DATES}
+            fullSlots={view.fullSlots}
           />
 
           <Button

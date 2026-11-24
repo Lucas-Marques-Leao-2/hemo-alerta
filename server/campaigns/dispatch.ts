@@ -6,6 +6,7 @@ import type { AudienceCandidate } from "@/lib/campaign"
 import { prisma } from "@/lib/db"
 import { isEmailConfigured } from "@/lib/email/cloudflare"
 import { CampaignStatus, DeliveryStatus } from "@/prisma/generated/client"
+import { audit, type AuditActor } from "@/server/audit"
 import { sendCampaignWorkflow } from "@/server/workflows/campaign.workflow"
 
 import { getCampaignAudience, getResendAudience } from "./audience"
@@ -15,6 +16,7 @@ type DispatchOptions = {
   // Doadores exibidos na prévia e confirmados pelo gestor.
   confirmedDonorIds: string[]
   mode: "initial" | "resend"
+  actor: AuditActor
 }
 
 export function assertEmailConfigured() {
@@ -26,7 +28,7 @@ export function assertEmailConfigured() {
 }
 
 // Registra as tentativas de envio e inicia o workflow que entrega os e-mails.
-export async function dispatchCampaign({ campaignId, confirmedDonorIds, mode }: DispatchOptions) {
+export async function dispatchCampaign({ campaignId, confirmedDonorIds, mode, actor }: DispatchOptions) {
   assertEmailConfigured()
 
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
@@ -100,6 +102,18 @@ export async function dispatchCampaign({ campaignId, confirmedDonorIds, mode }: 
       data: recipients.map((donor) => ({ campaignId, donorId: donor.id })),
       skipDuplicates: true,
     })
+
+    await audit(
+      {
+        actor,
+        action: mode === "initial" ? "campaign.send" : "campaign.resend",
+        entityType: "campaign",
+        entityId: campaignId,
+        summary: `${campaign.title}: ${recipients.length} ${recipients.length === 1 ? "destinatário" : "destinatários"}`,
+        metadata: { recipients: recipients.length },
+      },
+      tx,
+    )
   })
 
   try {

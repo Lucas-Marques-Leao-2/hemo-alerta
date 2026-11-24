@@ -18,6 +18,8 @@ type AppointmentActionsProps = {
     donor: { id: string; name: string; bloodType: BloodTypeKey }
   }
   canRecordDonation: boolean
+  // Botões maiores, para uso em tablet na recepção.
+  large?: boolean
 }
 
 const STATUS_DONE = {
@@ -25,7 +27,8 @@ const STATUS_DONE = {
   CANCELED: "cancelado",
 } as const
 
-export function AppointmentActions({ appointment, canRecordDonation }: AppointmentActionsProps) {
+export function AppointmentActions({ appointment, canRecordDonation, large }: AppointmentActionsProps) {
+  const size = large ? "md" : "compact-sm"
   const isPast = appointment.date <= todayDateString()
 
   const restore = useAction(updateAppointmentStatusAction, {
@@ -73,11 +76,13 @@ export function AppointmentActions({ appointment, canRecordDonation }: Appointme
           appointment={appointment}
           label="Doou"
           color="green"
+          size={size}
+          variant={large ? "filled" : "light"}
         />
       )}
       {isPast && (
         <Button
-          size="compact-sm"
+          size={size}
           variant="subtle"
           color="orange"
           loading={update.isPending && update.input?.status === "MISSED"}
@@ -87,7 +92,7 @@ export function AppointmentActions({ appointment, canRecordDonation }: Appointme
         </Button>
       )}
       <Button
-        size="compact-sm"
+        size={size}
         variant="subtle"
         color="gray"
         loading={update.isPending && update.input?.status === "CANCELED"}

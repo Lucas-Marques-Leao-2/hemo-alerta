@@ -53,18 +53,23 @@ export function nextEligibleDate(lastDonationAt: Date | null, minDaysSinceDonati
 }
 
 // Datas que o doador pode escolher: a partir de hoje (ou de quando volta a
-// poder doar) até o fim da janela de agendamento.
+// poder doar) até o fim da janela de agendamento, sem os dias sem coleta.
 export function schedulingDates(
   lastDonationAt: Date | null,
   minDaysSinceDonation: number,
   now = new Date(),
+  closedWeekdays: number[] = [],
 ) {
   const today = todayDateString(now)
   const eligible = nextEligibleDate(lastDonationAt, minDaysSinceDonation)
   const start = eligible && eligible > today ? eligible : today
 
-  return Array.from({ length: SCHEDULING_WINDOW_DAYS }, (_, index) => addDays(start, index))
+  return Array.from({ length: SCHEDULING_WINDOW_DAYS }, (_, index) => addDays(start, index)).filter(
+    (date) => !closedWeekdays.includes(dateStringToDate(date).getUTCDay()),
+  )
 }
+
+export const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
 
 const WEEKDAY = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" })
 const DAY_MONTH = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "UTC" })

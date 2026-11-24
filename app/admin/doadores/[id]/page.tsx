@@ -7,6 +7,7 @@ import { DeleteDonationButton } from "@/components/admin/donations/delete-donati
 import { ButtonLink } from "@/components/button-link"
 import { hasPermission, requirePermission } from "@/lib/auth-session"
 import { BLOOD_TYPE_LABEL } from "@/lib/blood-stock-constants"
+import { AUDIT_ACTION_LABEL, type AuditAction } from "@/lib/audit"
 import { formatDateTime, INVITATION_RESPONSE_LABEL } from "@/lib/campaign"
 import {
   APPOINTMENT_PERIOD_LABEL,
@@ -91,7 +92,12 @@ export default async function DonorProfilePage({ params }: PageProps<"/admin/doa
           {canSchedule && (
             <ScheduleAppointmentButton
               donor={donor}
-              dates={schedulingDates(donor.lastDonationAt, donor.rules.minDaysSinceDonation)}
+              dates={schedulingDates(
+                donor.lastDonationAt,
+                donor.rules.minDaysSinceDonation,
+                new Date(),
+                donor.rules.closedWeekdays,
+              )}
               current={openAppointmentView}
             />
           )}
@@ -260,6 +266,29 @@ export default async function DonorProfilePage({ params }: PageProps<"/admin/doa
                       ? "Abriu o link, sem resposta"
                       : "Sem resposta"}
                 </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 className="border-b border-zinc-200 px-5 py-3 font-medium dark:border-zinc-800">
+          Atividade recente
+        </h2>
+        {donor.activity.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            Nenhuma ação registrada para este doador.
+          </p>
+        ) : (
+          <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-900">
+            {donor.activity.map((log) => (
+              <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-2.5">
+                <span>
+                  <span className="font-medium">{AUDIT_ACTION_LABEL[log.action as AuditAction] ?? log.action}</span>
+                  <span className="text-zinc-500"> · {log.actorName}</span>
+                </span>
+                <span className="text-xs text-zinc-500">{formatDateTime(log.createdAt)}</span>
               </li>
             ))}
           </ul>
