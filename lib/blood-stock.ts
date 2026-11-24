@@ -13,7 +13,12 @@ export {
 } from "@/lib/blood-stock-constants"
 export type { BloodStockHistoryPoint, BloodTypeKey } from "@/lib/blood-stock-constants"
 
-export const DAILY_MINIMUM_BAGS = 350
+/** Meta diária = soma dos estoques adequados de todos os tipos no snapshot. */
+export function getDailyMinimumBags(
+  stocks: Array<{ adequateQuantity: number }>,
+) {
+  return stocks.reduce((sum, stock) => sum + stock.adequateQuantity, 0)
+}
 
 export function getSafeStockFillPercentage(
   actualQuantity: number,

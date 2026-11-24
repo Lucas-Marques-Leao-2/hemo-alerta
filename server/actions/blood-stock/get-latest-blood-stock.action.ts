@@ -2,7 +2,7 @@
 
 import { z } from "zod"
 
-import { BLOOD_TYPE_ORDER, DAILY_MINIMUM_BAGS } from "@/lib/blood-stock"
+import { BLOOD_TYPE_ORDER, getDailyMinimumBags } from "@/lib/blood-stock"
 import {
   BLOOD_TYPE_KEYS,
   type BloodStockHistoryPoint,
@@ -90,6 +90,7 @@ export const getBloodStockDashboardDataAction = actionClient
     }
 
     const latest = snapshots[0]
+    const dailyGoal = getDailyMinimumBags(latest.stocks)
     const history = buildHistory(snapshots)
     const dailyTotals = [...history]
       .reverse()
@@ -101,9 +102,10 @@ export const getBloodStockDashboardDataAction = actionClient
     const highest = dailyTotals.reduce((current, day) =>
       day.totalBags > current.totalBags ? day : current,
     )
-    const lastGoal = dailyTotals.find(
-      (day) => day.totalBags >= DAILY_MINIMUM_BAGS,
-    )
+    const lastGoal =
+      dailyGoal > 0
+        ? dailyTotals.find((day) => day.totalBags >= dailyGoal)
+        : undefined
 
     return {
       snapshot: {
@@ -114,9 +116,10 @@ export const getBloodStockDashboardDataAction = actionClient
       },
       stats: {
         totalBags,
-        dailyGoal: DAILY_MINIMUM_BAGS,
-        completenessPercent: (totalBags / DAILY_MINIMUM_BAGS) * 100,
-        bagsRemaining: Math.max(0, DAILY_MINIMUM_BAGS - totalBags),
+        dailyGoal,
+        completenessPercent:
+          dailyGoal > 0 ? (totalBags / dailyGoal) * 100 : 0,
+        bagsRemaining: Math.max(0, dailyGoal - totalBags),
         dailyAverage,
         daysTracked,
         highestTotal: highest.totalBags,

@@ -144,7 +144,7 @@ export function BloodStockDashboard({
               <p className="mt-1 text-xs text-zinc-500">
                 {stats.lastGoalMetTotal != null
                   ? `${stats.lastGoalMetTotal} bolsas`
-                  : "nenhum snapshot chegou a 350"}
+                  : "nenhum snapshot bateu a meta"}
               </p>
             </div>
           </dl>
