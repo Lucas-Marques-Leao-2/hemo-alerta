@@ -75,7 +75,7 @@ export function DateChooser({
             onClick={() => setShowAll((value) => !value)}
             className="mt-3 text-sm font-medium text-red-700 hover:underline dark:text-red-400"
           >
-            {showAll ? "Mostrar menos datas" : `Ver mais datas (até ${formatDayMonth(dates.at(-1)!)})`}
+            {showAll ? "Mostrar menos datas" : "Outras datas"}
           </button>
         )}
       </fieldset>

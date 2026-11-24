@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import Link from "next/link"
 
 import { InvitationExperience } from "@/components/public/invitation-experience"
@@ -15,11 +16,12 @@ export const metadata: Metadata = {
 
 export default async function DonatePage({ params }: PageProps<"/doar/[token]">) {
   const { token } = await params
-  const view = await getInvitationView(token)
+  const [view, requestHeaders] = await Promise.all([getInvitationView(token), headers()])
+  const prefersIcs = /iPhone|iPad|Macintosh/.test(requestHeaders.get("user-agent") ?? "")
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-6 sm:py-12">
         <Link
           href="/"
           className="text-xs font-semibold uppercase tracking-[0.25em] text-red-700 dark:text-red-400"
@@ -31,13 +33,12 @@ export default async function DonatePage({ params }: PageProps<"/doar/[token]">)
           <InvitationExperience
             token={token}
             view={view}
-            stock={
-              view.stock
+            prefersIcs={prefersIcs}
+            urgentStock={
+              view.stock && (view.stock.status === "CRITICAL" || view.stock.status === "MINIMUM")
                 ? {
-                    quantity: view.stock.quantity,
                     label: STOCK_STATUS_LABEL[view.stock.status],
                     badge: STOCK_STATUS_STYLES[view.stock.status].badge,
-                    urgent: view.stock.status === "CRITICAL" || view.stock.status === "MINIMUM",
                   }
                 : null
             }

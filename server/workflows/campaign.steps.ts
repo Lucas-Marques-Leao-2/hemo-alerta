@@ -25,7 +25,6 @@ export async function sendDelivery(deliveryId: string) {
     where: { id: deliveryId },
     include: {
       campaign: true,
-      donor: { select: { lastDonationAt: true } },
     },
   })
 
@@ -48,12 +47,9 @@ export async function sendDelivery(deliveryId: string) {
   const email = renderCampaignEmail({
     donorName: delivery.recipientName,
     donorBloodType: delivery.bloodType,
-    lastDonationAt: delivery.donor?.lastDonationAt ?? null,
     subject: delivery.campaign.subject,
     title: delivery.campaign.title,
     message: delivery.campaign.message,
-    campaignBloodTypes: delivery.campaign.bloodTypes,
-    appUrl,
     scheduleUrl: invitation ? `${appUrl}${invitationPath(invitation.id)}` : null,
     donationCount,
   })

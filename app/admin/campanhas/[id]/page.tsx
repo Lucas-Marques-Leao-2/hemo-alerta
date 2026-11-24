@@ -59,12 +59,11 @@ export default async function CampaignPage({ params }: PageProps<"/admin/campanh
   const preview = renderCampaignEmail({
     donorName: sample?.name ?? "Maria da Silva",
     donorBloodType: sample?.bloodType ?? campaign.bloodTypes[0],
-    lastDonationAt: null,
     subject: campaign.subject,
     title: campaign.title,
     message: campaign.message,
-    campaignBloodTypes: campaign.bloodTypes,
-    appUrl: getAppUrl(),
+    // Na prévia o link é ilustrativo: cada doador recebe o seu link pessoal.
+    scheduleUrl: `${getAppUrl()}/doar/exemplo`,
   })
 
   return (

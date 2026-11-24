@@ -18,7 +18,7 @@ type CampaignFormProps = {
 }
 
 const DEFAULT_MESSAGE =
-  "O estoque de sangue do HEMOAL está baixo e precisamos da sua ajuda.\n\nUma única doação leva menos de uma hora e pode ajudar até quatro pessoas. Se puder, venha doar nos próximos dias."
+  "O estoque de sangue do HEMOAL está baixo. Uma doação leva menos de uma hora e pode ajudar até quatro pessoas."
 
 export function CampaignForm({ campaign, suggestedBloodTypes = [] }: CampaignFormProps) {
   const router = useRouter()
@@ -64,7 +64,7 @@ export function CampaignForm({ campaign, suggestedBloodTypes = [] }: CampaignFor
       <TextInput
         name="title"
         label="Título"
-        description="Aparece em destaque no e-mail e identifica a campanha no painel."
+        description="Aparece acima do nome do doador no e-mail e identifica a campanha no painel."
         placeholder="Estoque de O− em nível crítico"
         defaultValue={campaign?.title}
         required
@@ -81,7 +81,7 @@ export function CampaignForm({ campaign, suggestedBloodTypes = [] }: CampaignFor
       <Textarea
         name="message"
         label="Mensagem"
-        description="Separe parágrafos com uma linha em branco. O nome e o tipo sanguíneo do doador são incluídos automaticamente."
+        description="Seja breve: uma ou duas frases convertem melhor. O nome, o tipo sanguíneo e o botão de agendar já vêm no topo do e-mail."
         defaultValue={campaign?.message ?? DEFAULT_MESSAGE}
         autosize
         minRows={6}
